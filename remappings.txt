@@ -1,0 +1,5 @@
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+forge-std/=lib/forge-std/src/
+@ensdomains/ens-contracts/=lib/ens-contracts/contracts/
+lib/ens-contracts/:@openzeppelin/contracts/=lib/openzeppelin-contracts-v4/contracts/
+lib/ens-contracts/:@openzeppelin/contracts-v5/=lib/openzeppelin-contracts-v5.1/contracts/

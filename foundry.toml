@@ -1,0 +1,43 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+libs = ["lib"]
+solc_version = "0.8.30"
+evm_version = "osaka"
+optimizer = true
+optimizer_runs = 800
+via_ir = false
+bytecode_hash = "none"
+cbor_metadata = false
+ffi = false
+fs_permissions = [
+  { access = "read", path = "./deployments" },
+  { access = "read", path = "./genesis" },
+  { access = "read-write", path = "../sdk/test" },
+]
+gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "ArcNSResolver", "ArcNSMarket", "AttestationRegistry"]
+
+[profile.default.fuzz]
+runs = 1000
+
+[profile.default.invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+
+[profile.ci]
+fuzz = { runs = 10000 }
+invariant = { runs = 1000, depth = 128 }
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+
+[rpc_endpoints]
+arc_testnet = "${ARC_RPC_URL}"
+
+[etherscan]
+arc_testnet = { key = "${ARCSCAN_API_KEY}", url = "https://testnet.arcscan.app/api/", chain = 5042002 }

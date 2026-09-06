@@ -1,0 +1,10 @@
+# Foundry build artifacts
+out/
+cache/
+# Local broadcast logs (testnet/mainnet broadcasts are committed deliberately under deployments/)
+broadcast/*/31337/
+broadcast/**/dry-run/
+# Local env (names-only .env.example is committed)
+.env
+.env.*
+!.env.example
