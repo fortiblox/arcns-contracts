@@ -1,8 +1,8 @@
 {
  "meta": {
   "note": "public sanitized reserved index — reasons/sources/personal buckets omitted",
-  "count": 20223,
-  "labels_sha256": "a6f57f3ae796bcba1478eb26f2eda01b07a78194a5aef10093155e35411657ce"
+  "count": 20307,
+  "labels_sha256": "c6346a3f05e0cedba314307c80f56e735a41f1f27f02e97f62357f04ec06e88e"
  },
  "index": {
   "0rg45m": {
@@ -661,9 +661,8 @@
    "claimable_by": "domain-control"
   },
   "aave": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "aavelabs": {
    "level": "PROTECTED",
@@ -993,6 +992,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "absa": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "absci": {
    "level": "PROTECTED",
@@ -3774,9 +3777,8 @@
    "claimable_by": "domain-control"
   },
   "alchemy": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "alchemyinvestmentsacquisition1": {
    "level": "PROTECTED",
@@ -6527,10 +6529,17 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "apollo-global": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "apolloglobal": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "apolloglobalmanagement": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "apollomics": {
    "level": "PROTECTED",
@@ -6944,11 +6953,23 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "arc-node": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "arc-ns": {
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "arc-remote-signer": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "arc-testnet": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "arc-token": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -7080,6 +7101,10 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "arcnode": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "arcns": {
    "level": "BLOCKED",
    "bucket": "system"
@@ -7111,6 +7136,10 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "arcremotesigner": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "arcscan": {
    "level": "BLOCKED",
    "bucket": "system"
@@ -7126,6 +7155,10 @@
    "claimable_by": "domain-control"
   },
   "arctestnet": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "arctoken": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -9518,6 +9551,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "aws": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "awtrf": {
    "level": "PROTECTED",
    "bucket": "ticker",
@@ -9547,6 +9584,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "axelar": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "axg": {
    "level": "PROTECTED",
@@ -12818,9 +12859,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "bitgo": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "bithumb": {
    "level": "PROTECTED",
@@ -12852,6 +12892,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "bitso": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "bitstamp": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -12866,6 +12910,10 @@
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "bitvavo": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "bitventures": {
    "level": "PROTECTED",
@@ -13199,9 +13247,8 @@
    "bucket": "reserved"
   },
   "blackrock": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "blackrockcoffeebar": {
    "level": "PROTECTED",
@@ -13511,9 +13558,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "blockdaemon": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "blockfi": {
    "level": "PROTECTED",
@@ -13524,6 +13570,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "blockscout": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "blockstream": {
    "level": "PROTECTED",
@@ -14121,9 +14171,8 @@
    "claimable_by": "domain-control"
   },
   "bny": {
-   "level": "PROTECTED",
-   "bucket": "ticker",
-   "claimable_by": "domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "bny-pk": {
    "level": "PROTECTED",
@@ -14797,6 +14846,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "brex": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "brez": {
    "level": "PROTECTED",
@@ -15601,10 +15654,18 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "btg-pactual": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "btgo": {
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "btgpactual": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "bti": {
    "level": "PROTECTED",
@@ -15789,6 +15850,14 @@
    "level": "RESERVED",
    "bucket": "reserved"
   },
+  "build-on-arc": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "build-on-circle": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "buildabearworkshop": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -15808,6 +15877,14 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "buildonarc": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "buildoncircle": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "buks": {
    "level": "PROTECTED",
@@ -16240,9 +16317,8 @@
    "claimable_by": "domain-control"
   },
   "bybit": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "byd": {
    "level": "PROTECTED",
@@ -17284,6 +17360,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "careem": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "caretrustreit": {
    "level": "PROTECTED",
@@ -18504,6 +18584,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "centrifuge": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "centrusenergy": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -18943,9 +19027,8 @@
    "bucket": "system"
   },
   "chainalysis": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "chainbridgebancorp": {
    "level": "PROTECTED",
@@ -18963,9 +19046,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "chainlink": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "chainon": {
    "level": "PROTECTED",
@@ -19992,7 +20074,23 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "circle-crypto-finance": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "circle-internet": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circle-internet-financial": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circle-internet-group": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circle-payments-network": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -20009,12 +20107,28 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "circlecryptofinance": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "circleenergy": {
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "circlefin": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "circleinternet": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circleinternetfinancial": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circleinternetgroup": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -20023,6 +20137,10 @@
    "bucket": "system"
   },
   "circlepay": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "circlepaymentsnetwork": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -20638,9 +20756,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "cloudflare": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "cloudweb": {
    "level": "PROTECTED",
@@ -21773,9 +21890,8 @@
    "bucket": "premium_s"
   },
   "coinbase": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "coinbaseai": {
    "level": "BLOCKED",
@@ -21821,6 +21937,10 @@
   "coinbaseteam": {
    "level": "BLOCKED",
    "bucket": "social_variant"
+  },
+  "coincheck": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "coinchecknv": {
    "level": "PROTECTED",
@@ -22048,6 +22168,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "commerzbank": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "communitybancorpvt": {
    "level": "PROTECTED",
@@ -22484,9 +22608,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "copper": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "copperco": {
    "level": "PROTECTED",
@@ -22619,9 +22742,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "corpay": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "corporacionamericaairportssa": {
    "level": "PROTECTED",
@@ -22907,6 +23029,10 @@
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "cpn": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "cpng": {
    "level": "PROTECTED",
@@ -23503,6 +23629,10 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "crosschaintransfer": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "crossmint": {
    "level": "BLOCKED",
    "bucket": "system"
   },
@@ -24223,9 +24353,8 @@
    "bucket": "profanity"
   },
   "cumberland": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "cumberlandfarms": {
    "level": "PROTECTED",
@@ -24369,9 +24498,8 @@
    "claimable_by": "domain-control"
   },
   "curve": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "curvefi": {
    "level": "PROTECTED",
@@ -25987,6 +26115,14 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "deutsche-bank": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "deutschebank": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "deutschebankaktiengesellschaft": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -26487,6 +26623,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "dinari": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "dinebrandsglobal": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -26758,9 +26898,8 @@
    "claimable_by": "domain-control"
   },
   "dlocal": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "dlpn": {
    "level": "PROTECTED",
@@ -27543,6 +27682,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "drpc": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "drreddyslaboratories": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -27747,6 +27890,10 @@
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "dtcc": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "dtckf": {
    "level": "PROTECTED",
@@ -28186,6 +28333,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "dynamic": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "dynamicaerospacesystems": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -28459,6 +28610,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "ebanx": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "ebay": {
    "level": "PROTECTED",
@@ -29513,9 +29668,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "elliptic": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "ellipticco": {
    "level": "PROTECTED",
@@ -29854,6 +30008,14 @@
    "level": "PROTECTED",
    "bucket": "identity",
    "claimable_by": "exact-social-match"
+  },
+  "emirates-nbd": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "emiratesnbd": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "emis": {
    "level": "PROTECTED",
@@ -32075,9 +32237,8 @@
    "claimable_by": "domain-control"
   },
   "exodus": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "exodusmovement": {
    "level": "PROTECTED",
@@ -33741,9 +33902,8 @@
    "bucket": "premium"
   },
   "fireblocks": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "firedancer": {
    "level": "PROTECTED",
@@ -33773,6 +33933,14 @@
   "first": {
    "level": "AVAILABLE",
    "bucket": "premium"
+  },
+  "first-abu-dhabi-bank": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "firstabudhabibank": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "firstadvantage": {
    "level": "PROTECTED",
@@ -34055,9 +34223,8 @@
    "claimable_by": "domain-control"
   },
   "fis": {
-   "level": "PROTECTED",
-   "bucket": "ticker",
-   "claimable_by": "domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "fiscalnote": {
    "level": "PROTECTED",
@@ -36683,9 +36850,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "galaxy": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "galaxydigital": {
    "level": "PROTECTED",
@@ -38561,6 +38727,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "global-payments": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "globalai": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -38647,9 +38817,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "globalpayments": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "globalselfstorage": {
    "level": "PROTECTED",
@@ -39221,10 +39390,13 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "goldman-sachs": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "goldmansachs": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "goldmansachsbdc": {
    "level": "PROTECTED",
@@ -41627,6 +41799,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "hashkey": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "hasi": {
    "level": "PROTECTED",
    "bucket": "ticker",
@@ -43588,9 +43764,8 @@
    "claimable_by": "exact-social-match"
   },
   "hsbc": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "hscs": {
    "level": "PROTECTED",
@@ -48397,19 +48572,21 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "jerallaire": {
-   "level": "PROTECTED",
-   "bucket": "identity",
-   "claimable_by": "exact-social-match"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "jerashus": {
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "jeremy-allaire": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "jeremyallaire": {
-   "level": "PROTECTED",
-   "bucket": "identity",
-   "claimable_by": "exact-social-match"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "jerk0ff": {
    "level": "BLOCKED",
@@ -49101,6 +49278,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "juno": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "juns": {
    "level": "PROTECTED",
@@ -50866,9 +51047,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "kraken": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "kraq": {
    "level": "PROTECTED",
@@ -51368,6 +51548,14 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "kyobo-life": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "kyobolife": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "kyocera": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -51865,6 +52053,14 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "layer-zero": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "layerzero": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "laz": {
    "level": "PROTECTED",
    "bucket": "ticker",
@@ -52121,9 +52317,8 @@
    "claimable_by": "exact-social-match"
   },
   "ledger": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "ledgerlive": {
    "level": "PROTECTED",
@@ -52655,6 +52850,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "lian-lian": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "lianbio": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -52664,6 +52863,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "lianlian": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "liany": {
    "level": "PROTECTED",
@@ -55198,6 +55401,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "maple": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "maplebear": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -55555,9 +55762,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "mastercard": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "mastercardai": {
    "level": "BLOCKED",
@@ -56707,6 +56913,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "mercoin": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "mercurygeneral": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -56931,9 +57141,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "metamask": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "metaofficial": {
    "level": "BLOCKED",
@@ -58892,10 +59101,13 @@
    "level": "RESERVED",
    "bucket": "reserved"
   },
+  "money-gram": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "moneygram": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "moneyhero": {
    "level": "PROTECTED",
@@ -59047,9 +59259,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "morpho": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "mos": {
    "level": "PROTECTED",
@@ -64559,6 +64770,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "nuvei": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "nuveracommunications": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -68601,9 +68816,8 @@
    "claimable_by": "domain-control"
   },
   "paysafe": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "paysign": {
    "level": "PROTECTED",
@@ -70099,6 +70313,14 @@
   "photo": {
    "level": "AVAILABLE",
    "bucket": "premium_b"
+  },
+  "photon-pay": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "photonpay": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "photronics": {
    "level": "PROTECTED",
@@ -72019,6 +72241,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "privy": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "prk": {
    "level": "PROTECTED",
    "bucket": "ticker",
@@ -73862,9 +74088,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "quicknode": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "quidelortho": {
    "level": "PROTECTED",
@@ -74181,9 +74406,8 @@
    "claimable_by": "domain-control"
   },
   "rainbow": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "rainmakerworldwide": {
    "level": "PROTECTED",
@@ -76883,9 +77107,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "robinhood": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "robinhoodmarkets": {
    "level": "PROTECTED",
@@ -78025,6 +78248,10 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "safe-pal": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "safebulkers": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -78046,9 +78273,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "safepal": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "safepro": {
    "level": "PROTECTED",
@@ -78734,6 +78960,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "sbi-holdings": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "sbig": {
    "level": "PROTECTED",
    "bucket": "ticker",
@@ -78743,6 +78973,10 @@
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "sbiholdings": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "sbishinseibankadr": {
    "level": "PROTECTED",
@@ -79546,9 +79780,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "securitize": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "security": {
    "level": "BLOCKED",
@@ -82567,6 +82800,14 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "societe-generale": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "societegenerale": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "societypassincorporated": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -84251,6 +84492,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "stable-fx": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "stablecoindevelopment": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -84260,6 +84505,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "stablefx": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "staff": {
    "level": "BLOCKED",
@@ -84304,6 +84553,10 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "standard-chartered": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "standardaero": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -84313,6 +84566,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "standardchartered": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "standarddentallabs": {
    "level": "PROTECTED",
@@ -84524,15 +84781,18 @@
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
+  "state-street": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "statefarm": {
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
   },
   "statestreet": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "static": {
    "level": "BLOCKED",
@@ -85334,10 +85594,22 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "sumitomo": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "sumitomo-corporation": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "sumitomobakeliteadr": {
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "sumitomocorporation": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "sumitomoelectricindustriesadr": {
    "level": "PROTECTED",
@@ -87127,6 +87399,14 @@
    "level": "BLOCKED",
    "bucket": "system"
   },
+  "team-circle": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
+  "teamcircle": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "teamshares": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -87456,6 +87736,10 @@
    "level": "PROTECTED",
    "bucket": "trademark",
    "claimable_by": "exact-social-match OR domain-control"
+  },
+  "tenderly": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "tenethealthcare": {
    "level": "PROTECTED",
@@ -92461,6 +92745,10 @@
    "bucket": "ticker",
    "claimable_by": "domain-control"
   },
+  "usyc": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "utahmedicalproducts": {
    "level": "PROTECTED",
    "bucket": "trademark",
@@ -93901,9 +94189,8 @@
    "claimable_by": "exact-social-match OR domain-control"
   },
   "visa": {
-   "level": "PROTECTED",
-   "bucket": "trademark",
-   "claimable_by": "exact-social-match OR domain-control"
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "visaai": {
    "level": "BLOCKED",
@@ -97566,6 +97853,10 @@
    "level": "AVAILABLE",
    "bucket": "single_char"
   },
+  "x-reserve": {
+   "level": "BLOCKED",
+   "bucket": "system"
+  },
   "x1": {
    "level": "RESERVED",
    "bucket": "reserved"
@@ -98191,6 +98482,10 @@
    "level": "PROTECTED",
    "bucket": "ticker",
    "claimable_by": "domain-control"
+  },
+  "xreserve": {
+   "level": "BLOCKED",
+   "bucket": "system"
   },
   "xrn": {
    "level": "PROTECTED",
