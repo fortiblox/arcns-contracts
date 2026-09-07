@@ -51,16 +51,25 @@ library MarketDeployLib {
         Vouchers vouchers;
     }
 
+    /// @dev Split out from `deployMarketStack` so a caller that only needs the early revert paths (a
+    ///      test harness giving `vm.expectRevert` a real call-depth boundary, see
+    ///      `test/market/MarketDeploy.t.sol`'s `MarketDeployHarness`) does not have to pull in the six
+    ///      `new X()` contract creations' bytecode too — that inlining alone put a bare pass-through
+    ///      harness over the EIP-170 24,576-byte runtime limit (45,128 bytes measured).
+    function validateParams(Params memory p) internal pure {
+        require(
+            p.timelock != address(0) && p.pauser != address(0) && p.treasury != address(0), "MarketDeployLib: zero addr"
+        );
+        require(p.collections.length == p.grantMarketRole.length, "MarketDeployLib: length mismatch");
+    }
+
     /// @dev Deployer must be `p.deployer` (the caller holds `DEFAULT_ADMIN_ROLE` on every collection in
     ///      `p.collections` where `grantMarketRole[i]` is true, so it can grant `MARKET_ROLE` there —
     ///      the real script runs this from the Admin Safe / a role the timelock has delegated for the
     ///      wiring window, exactly like `ArcNSDeployLib.handoff`'s pattern of "deployer keeps admin only
     ///      for the duration of this script").
     function deployMarketStack(Params memory p) internal returns (Book memory b) {
-        require(
-            p.timelock != address(0) && p.pauser != address(0) && p.treasury != address(0), "MarketDeployLib: zero addr"
-        );
-        require(p.collections.length == p.grantMarketRole.length, "MarketDeployLib: length mismatch");
+        validateParams(p);
 
         b.nameLocks = new NameLocks{salt: Salts.forName("NameLocks")}(p.deployer, p.unlockTimelockSecs);
         b.recordDelegate = new RecordDelegate{salt: Salts.forName("RecordDelegate")}();

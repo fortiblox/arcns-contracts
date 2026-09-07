@@ -17,9 +17,16 @@ import {MockERC721} from "./mocks/MockERC721.sol";
 ///      revert-path tests below a real external call to attach `vm.expectRevert` to; it is never used
 ///      for the success-path tests, which call the library directly under `vm.startPrank`/`stopPrank`
 ///      so `msg.sender` stays `deployer` throughout every external call the library itself makes.
+///
+///      Calls `MarketDeployLib.validateParams` only — NOT the full `deployMarketStack` — since both
+///      revert paths this harness exists for fire inside that early validation, before any `new X()`.
+///      Inlining the full `deployMarketStack` (which creates seven contracts) here previously put this
+///      bare pass-through harness at 45,128 bytes runtime, well over the EIP-170 24,576-byte limit and
+///      failing `forge build --sizes` in CI; calling only `validateParams` keeps its own bytecode tiny
+///      because Solidity only inlines the code actually reachable from this contract's entrypoints.
 contract MarketDeployHarness {
-    function deploy(MarketDeployLib.Params memory p) external returns (MarketDeployLib.Book memory) {
-        return MarketDeployLib.deployMarketStack(p);
+    function validate(MarketDeployLib.Params memory p) external pure {
+        MarketDeployLib.validateParams(p);
     }
 }
 
@@ -115,7 +122,7 @@ contract MarketDeployTest is Test {
         p.timelock = address(0);
         MarketDeployHarness harness = new MarketDeployHarness();
         vm.expectRevert(bytes("MarketDeployLib: zero addr"));
-        harness.deploy(p);
+        harness.validate(p);
     }
 
     function test_deployMarketStack_revertsOnLengthMismatch() public {
@@ -125,7 +132,7 @@ contract MarketDeployTest is Test {
         p.collections = oneCollection;
         MarketDeployHarness harness = new MarketDeployHarness();
         vm.expectRevert(bytes("MarketDeployLib: length mismatch"));
-        harness.deploy(p);
+        harness.validate(p);
     }
 
     /// @dev The market's own initial admin is the deployer (set inside `deployMarketStack`, then
