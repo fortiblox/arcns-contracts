@@ -49,7 +49,10 @@ contract TldHandler is Test {
     uint256 public calls;
     uint256 public commitOk;
     uint256[2] public revealAttempts;
-    uint256[2] public sealedCommitAndReveals;
+    /// @dev Reveal attempts made under conditions where `register` MUST succeed (see `_revealMustSucceed`).
+    uint256 public revealsExpected;
+    /// @dev ...of which reverted anyway. Any non-zero value is a liveness defect in the reveal path.
+    uint256 public unexpectedRevealReverts;
     uint256 public registerOk;
     uint256 public registerRevert;
     uint256 public transferOk;
@@ -147,7 +150,6 @@ contract TldHandler is Test {
             commitOk++;
         } catch {}
         vm.warp(block.timestamp + bound(uint256(wait), 0, MAX_AGE + 120));
-        if (isSealed[tld]) sealedCommitAndReveals[tld]++;
         _reveal(tld, r, key);
         _circleGuard(tld, before);
     }
@@ -255,9 +257,31 @@ contract TldHandler is Test {
         return pool[start % pool.length];
     }
 
+    /// @dev The handler's own knowledge of ONE attempt: every precondition `register` checks holds, so a
+    ///      revert would be a liveness defect, not a legitimate rejection. Mirrors the controller's order:
+    ///      sealed + directory Active, not paused, canonical + free label, commitment inside
+    ///      `[minCommitmentAge, maxCommitmentAge)` (ghost `commitTs` tracks the chain 1:1 — every commit
+    ///      and every consuming reveal goes through this handler). The payer is funded and `maxPrice` is
+    ///      the live quote inside `_reveal`, so those two preconditions hold by construction.
+    function _revealMustSucceed(uint8 tld, ITldRegistrarController.Registration memory r, bytes32 key)
+        internal
+        view
+        returns (bool)
+    {
+        uint256 committed = commitTs[key];
+        if (committed == 0) return false;
+        uint256 age = block.timestamp - committed;
+        if (age < MIN_AGE || age >= MAX_AGE) return false;
+        if (!ctls[tld].genesisSealed() || !directory.registrationsOpen(nodes[tld])) return false;
+        if (ctls[tld].paused()) return false;
+        return ctls[tld].available(r.label);
+    }
+
     function _reveal(uint8 tld, ITldRegistrarController.Registration memory r, bytes32 key) internal {
         revealAttempts[tld]++;
         uint256 committed = commitTs[key];
+        bool expected = _revealMustSucceed(tld, r, key);
+        if (expected) revealsExpected++;
         uint256 price = ctls[tld].quote(r.label);
         address payer = actors[uint256(keccak256(abi.encode(r.secret))) % 3];
         vm.deal(payer, payer.balance + price);
@@ -274,6 +298,7 @@ contract TldHandler is Test {
             delete commitTs[key];
         } catch {
             registerRevert++;
+            if (expected) unexpectedRevealReverts++;
         }
     }
 
@@ -388,16 +413,61 @@ contract TldInvariantTest is TldStackFixture {
     function invariant_call_counters_are_consistent() public view {
         assertEq(handler.registerOk() + handler.registerRevert(), handler.revealAttempts(0) + handler.revealAttempts(1));
         assertLe(handler.sealOk(), 2);
+        assertLe(handler.revealsExpected(), handler.revealAttempts(0) + handler.revealAttempts(1));
+    }
+
+    /// @dev Liveness of the reveal path, judged per attempt: a reveal the handler made with every
+    ///      precondition satisfied (`TldHandler._revealMustSucceed`) never reverts. Attempts the handler
+    ///      deliberately places outside the window, on a taken label or before the seal are legitimate
+    ///      rejections and are not counted, so the check does not depend on the fuzz seed.
+    function invariant_reveal_succeeds_whenever_preconditions_hold() public view {
+        assertEq(handler.unexpectedRevealReverts(), 0, "reveal reverted although every precondition held");
+    }
+
+    /// @dev Self-check of the handler's per-attempt judgement, so the liveness invariant above can never pass
+    ///      vacuously: the ghost counts exactly the attempts the controller is bound to accept, and each
+    ///      legitimate rejection (pre-seal, too new, too old, taken label) is left out.
+    function test_handler_judges_reveal_preconditions_like_the_controller() public {
+        // pre-seal: registrations closed, so not expected and rejected
+        handler.commitAndReveal(0, 1, 3, false, 100);
+        assertEq(handler.revealsExpected(), 0);
+        assertEq(handler.registerRevert(), 1);
+        handler.seal(0);
+        // in-window on a free label (the earlier commitment, now 200 s old): expected and lands
+        handler.commitAndReveal(0, 1, 3, false, 100);
+        assertEq(handler.revealsExpected(), 1);
+        assertEq(handler.registerOk(), 1);
+        // too new / too old: not expected, rejected
+        handler.commitAndReveal(0, 1, 4, true, 10);
+        handler.commitAndReveal(0, 2, 5, false, uint32(MAX_AGE + 100));
+        assertEq(handler.revealsExpected(), 1);
+        assertEq(handler.registerRevert(), 3);
+        // plain reveal path: first reveal of `name7` expected and lands, the re-commit + reveal of the now
+        // taken label is not expected and rejected
+        handler.commit(0, 0, 7, false);
+        handler.warp(100);
+        handler.reveal(0, 0, 7, false);
+        assertEq(handler.revealsExpected(), 2);
+        assertEq(handler.registerOk(), 2);
+        handler.commit(0, 0, 7, false);
+        handler.warp(100);
+        handler.reveal(0, 0, 7, false);
+        assertEq(handler.revealsExpected(), 2);
+        assertEq(handler.registerRevert(), 4);
+        assertEq(handler.unexpectedRevealReverts(), 0);
     }
 
     function afterInvariant() public view {
-        // A run that only reverts is a broken handler: with enough attempts on a isSealed TLD, some
-        // reveal must have landed, and batches / transfers / reclaims must have succeeded.
+        // A run that only reverts is a broken handler: genesis or commits must have succeeded, and every
+        // reveal made under must-succeed conditions must have landed (registerOk also counts reveals that
+        // landed without being pre-judged, so `>=`).
         if (handler.calls() >= 64) {
             assertGt(handler.batchOk() + handler.commitOk(), 0, "no successful genesis or commit");
         }
-        if (handler.sealedCommitAndReveals(0) + handler.sealedCommitAndReveals(1) >= 5) {
-            assertGt(handler.registerOk(), 0, "no successful reveal after seal");
+        if (handler.revealsExpected() > 0) {
+            assertGe(
+                handler.registerOk(), handler.revealsExpected(), "fewer successful reveals than must-succeed attempts"
+            );
         }
     }
 }
