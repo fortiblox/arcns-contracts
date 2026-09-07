@@ -1,0 +1,5 @@
+{
+  "_comment": "WP-124 MarketInit config template. Empty by default -- the CEO fills in real attestor and integrator addresses before running MarketInit.s.sol against a live deploy. rateBps must be <= IntegratorRegistry.CAP_BPS() (4000 / 40%).",
+  "attestors": [],
+  "integrators": []
+}

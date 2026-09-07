@@ -14,10 +14,11 @@ ffi = false
 fs_permissions = [
   { access = "read-write", path = "./deployments" },
   { access = "read", path = "./genesis" },
+  { access = "read", path = "./script/config" },
   { access = "read", path = "../docs" },
   { access = "read-write", path = "../sdk/test" },
 ]
-gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "TldRegistrar", "TldDirectory", "ArcNSPriceOracle", "ArcNSResolver"]
+gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "TldRegistrar", "TldDirectory", "ArcNSPriceOracle", "ArcNSResolver", "ArcNSMarket", "NameLocks", "RecordDelegate", "TextRecords", "AttestationRegistry", "IntegratorRegistry", "Vouchers"]
 
 [profile.default.fuzz]
 runs = 1000
