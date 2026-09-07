@@ -9,7 +9,9 @@ any real `.delegatecall(`, assembly `delegatecall(...)`, `selfdestruct(...)` sti
 
 Checks (contracts/src only; verbatim libs carry their upstream audits):
   SR-60  no `delegatecall` / `selfdestruct` token in code.
-  SR-62  the set of files whose CODE contains `whenNotPaused` is exactly the two controllers.
+  SR-62  the set of files whose CODE contains `whenNotPaused` is exactly the two registration
+         controllers plus ArcNSMarket (M3, SR-35: pause blocks only new listings/offers/bids, never
+         cancel/settle/withdraw -- the same "pausable surface = new activity only" principle as SR-62).
 
 A built-in self-test runs on every invocation before the scan (a checker that silently stopped
 matching would otherwise turn SR-60 into a no-op): the comment / string fixtures must pass and the
@@ -26,7 +28,7 @@ import tempfile
 
 SR60_TOKENS = re.compile(r"\b(delegatecall|selfdestruct)\b")
 SR62_TOKEN = re.compile(r"\bwhenNotPaused\b")
-SR62_ALLOWED = ("handle/HandleController.sol", "tld/TldRegistrarController.sol")
+SR62_ALLOWED = ("handle/HandleController.sol", "market/ArcNSMarket.sol", "tld/TldRegistrarController.sol")
 
 
 def strip_comments_and_strings(text: str) -> str:
@@ -150,10 +152,10 @@ def self_test() -> list[str]:
     """Return a list of self-test failures (empty = the checker is sound)."""
     failures: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
-        # 1. comments and strings never trigger; the two controllers are the only whenNotPaused users
+        # 1. comments and strings never trigger; the SR62_ALLOWED set are the only whenNotPaused users
         _write(tmp, "handle/Clean.sol", _CLEAN)
-        _write(tmp, SR62_ALLOWED[0], _PAUSED_CODE)
-        _write(tmp, SR62_ALLOWED[1], _PAUSED_CODE)
+        for allowed in SR62_ALLOWED:
+            _write(tmp, allowed, _PAUSED_CODE)
         got = scan(tmp)
         if got:
             failures.append(f"clean fixture must pass, got {got}")
@@ -164,17 +166,17 @@ def self_test() -> list[str]:
             if not any(p.startswith("SR-60 violated") and f"bad/{name}.sol:3:" in p for p in got):
                 failures.append(f"{name} fixture must fail SR-60 at line 3, got {got}")
             os.remove(os.path.join(tmp, "bad", f"{name}.sol"))
-        # 3. whenNotPaused in CODE outside the two controllers fails SR-62; in a comment it does not
+        # 3. whenNotPaused in CODE outside SR62_ALLOWED fails SR-62; in a comment it does not
         _write(tmp, "handle/Extra.sol", _PAUSED_CODE)
         got = scan(tmp)
         if not any(p.startswith("SR-62") for p in got):
             failures.append(f"extra whenNotPaused user must fail SR-62, got {got}")
         os.remove(os.path.join(tmp, "handle", "Extra.sol"))
-        # 4. a controller that only MENTIONS whenNotPaused in a comment is a missing user (SR-62 set shrinks)
+        # 4. an allowed file that only MENTIONS whenNotPaused in a comment is a missing user (SR-62 set shrinks)
         _write(tmp, SR62_ALLOWED[1], "// whenNotPaused is not used here\ncontract T {}\n")
         got = scan(tmp)
         if not any(p.startswith("SR-62") for p in got):
-            failures.append(f"controller without whenNotPaused in code must fail SR-62, got {got}")
+            failures.append(f"allowed file without whenNotPaused in code must fail SR-62, got {got}")
     return failures
 
 

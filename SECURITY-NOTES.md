@@ -41,5 +41,5 @@ and the pull-ledger `withdraw` — deliberate `call{value:}`), `assembly` (`Hand
 ## Other static checks
 
 - No `delegatecall`, `selfdestruct` or proxy pattern in `src/` (SR-60): `grep -rn "delegatecall\|selfdestruct" src` → empty (CI grep in `contracts.yml`, devops lane).
-- `whenNotPaused` appears only on `HandleController.register` and `TldRegistrarController.register` (SR-62).
+- `whenNotPaused` appears only on `HandleController.register`, `TldRegistrarController.register`, and `ArcNSMarket.{list,placeOffer,startAuction,placeBid}` (SR-62/SR-35 M3: same "pause blocks only new activity" principle; `ci/static-checks.py`'s `SR62_ALLOWED` was extended to include `market/ArcNSMarket.sol`).
 - Contract sizes (`forge build --sizes`, osaka, 24,576 B limit): `ArcNSResolver` 23,140 B runtime with `Ed25519` and `PrimaryNameLib` as linked public libraries; every other contract < 18 KB.
