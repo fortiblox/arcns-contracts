@@ -1,0 +1,63 @@
+{
+  "AdminSafe": "0x632e02ADaA92dE3303506eAfc3937348C88dcd83",
+  "ArcNSPriceOracle": "0xAb0B37dc10Da89158e6E7641aa032EAef300bcCD",
+  "ArcNSResolver": "0x2841Ca947CC17eB3759df4950a548C217dA6287a",
+  "ENSRegistry": "0x0a1DfA7f63fCd0526ed3bA81Af3d31E05Aa42FE4",
+  "EnsBootstrap": "0x553fdB0A3661cD60383bD98777a4a46DF7b953AB",
+  "GatewayProvider": "0x0cA06Cc1375Eb146CbbfcF25Eb1f20718Fa24C81",
+  "HandleController": "0xF84B693cE8c9230BCacC0422cA98eAf19f7c46f0",
+  "HandleRegistry": "0x520Ef0D49F2e2A66d99B460E05EC5A8C743215d2",
+  "ReverseRegistrar": "0x50986507E5c91255Ee4Ee63832b90e2DdC1B2cFA",
+  "Root": "0xc1291563f4206301e70665FFDb190a057B569909",
+  "TimelockController": "0xF0027dfe0D0a1d484c7186F8DA72165C6F1D0b24",
+  "TldDirectory": "0x66aeb7Dd9766d525e094EFa6d4D78933cAFbe8de",
+  "TldMetadata": "0xB53cCF5C84e616C69494964F12Bddaf702C72dFf",
+  "UniversalResolver": "0xF7DEea25dc3Edb3c9a82cB8Dc1Ba529230A91737",
+  "admin": "0xd91d1F6abB7243910B38Fe86CdCd0754a00cB152",
+  "broadcastLog": "broadcast/DeployAll.s.sol/5042002/run-latest.json",
+  "bytecodeHashes": {
+    "ArcNSPriceOracle": "0xb10faff611c8647785b9642a1cef7a06b7507473f24a2836f07ab39e6b551c79",
+    "ArcNSResolver": "0x6858788da36e0da60d3d475f9389678a146f9849fd359d7985b4420d79d6353d",
+    "ENSRegistry": "0x5a9606c81ab29638d4037a75840c41c67d72084acc004def9c36d220e920225e",
+    "HandleController": "0xabe026a81947be5c5824832f3f1c24feeba367f991ea3169e2f411f1d30ddea9",
+    "HandleRegistry": "0x8213c5f1463cbb6771e3d5b8dd49c0fc20992a7b754e49e035398c0d82ae1552",
+    "ReverseRegistrar": "0x4f2152d67ba848510e9114f03ac5e66b1578abb96982cabc39277cb4529b2605",
+    "Root": "0xd9a01de5da15299b30a3125a94fad05765c8e3322d1ea3d8df04353832127ffe",
+    "TimelockController": "0x4e00876403f1e9d7a95e09058fd01529d5dca9e7b27f81ca3a1c2a40213147e7",
+    "TldDirectory": "0x2f6030a52dd1c4d17f1628d41cc28c4db97551529da39f6e357157a92f6ef773",
+    "TldMetadata": "0xf22033b93c29478b1da97249b5532bb374a6b515ecda05d9a7514961c47a6754",
+    "TldRegistrar": "0xc7c8f30c7da32070cb47625b092f76a16ae3cbd504ea8a41f90e47a809eb1623",
+    "TldRegistrarController": "0xaf9e9f8f8c51e8f8daed60318ad8617d97b1d19ab9825cc26490142055ad3899",
+    "UniversalResolver": "0x43013a249832dacf3b5d6cc6597204df75514e12e7b0328b74ecccbb0128b1d0"
+  },
+  "chainId": 5042002,
+  "deployBlock": 60889698,
+  "deployTimestamp": 1788774820,
+  "deployer": "0xd91d1F6abB7243910B38Fe86CdCd0754a00cB152",
+  "evmVersion": "osaka",
+  "handleNamespaceId": "0x0029d079b12bec15df9543eb0ed7b372431e8435f55a9d99fcd428ea250fb53c",
+  "launchTs": 1788774820,
+  "maxCommitmentAge": 86400,
+  "minCommitmentAge": 60,
+  "optimizerRuns": 800,
+  "safeSaltNonce": 20260907,
+  "solc": "0.8.30",
+  "timelockDelay": 3600,
+  "tlds": {
+    "arc": {
+      "BaseRegistrar": "0x38Ed7B5d7582d7314aAD4A9Fa55A89c843c65369",
+      "Controller": "0x9ef9bc82F54b004c3667bCE1f3196Ec5deB95F5d",
+      "namespaceId": "0x9a7ad1c5d8b1c60ef156c6723dbf462681d6462768a9e60c53665d7fc1337bae",
+      "node": "0x9a7ad1c5d8b1c60ef156c6723dbf462681d6462768a9e60c53665d7fc1337bae",
+      "status": "Active"
+    },
+    "circle": {
+      "BaseRegistrar": "0xB636C5f1a300391A1B8d9f1A14e2C9f11BC09B05",
+      "Controller": "0x66080189EEeD22f74dfC68fdfd854CFd811f83b4",
+      "namespaceId": "0xb3f3947bd9b363b1955fa597e342731ea6bde24d057527feb2cdfdeb807c2084",
+      "node": "0xb3f3947bd9b363b1955fa597e342731ea6bde24d057527feb2cdfdeb807c2084",
+      "status": "Active"
+    }
+  },
+  "treasury": "0x3dDF29e9757FaD73F1174391926cb3794AcF3A17"
+}
