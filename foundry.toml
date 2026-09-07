@@ -12,11 +12,12 @@ bytecode_hash = "none"
 cbor_metadata = false
 ffi = false
 fs_permissions = [
-  { access = "read", path = "./deployments" },
+  { access = "read-write", path = "./deployments" },
   { access = "read", path = "./genesis" },
+  { access = "read", path = "../docs" },
   { access = "read-write", path = "../sdk/test" },
 ]
-gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "ArcNSResolver", "ArcNSMarket", "AttestationRegistry"]
+gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "TldRegistrar", "TldDirectory", "ArcNSPriceOracle", "ArcNSResolver"]
 
 [profile.default.fuzz]
 runs = 1000
