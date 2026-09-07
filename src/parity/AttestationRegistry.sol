@@ -90,6 +90,9 @@ contract AttestationRegistry is IAttestationRegistry, AccessControl, EIP712 {
         bytes32 digest = _hashTypedDataV4(
             keccak256(abi.encode(ATTEST_TYPEHASH, collection, tokenId, uint8(kind), evidenceHash, deadline))
         );
+        // The discarded third tuple element is this OZ overload's recovered-digest-length slot, not a
+        // second error signal; `err` itself IS checked on the very next line.
+        // slither-disable-next-line unused-return
         (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, signature);
         if (err != ECDSA.RecoverError.NoError) revert InvalidSignature();
         if (!_isAttestor[signer]) revert NotAllowedAttestor(signer);
