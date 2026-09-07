@@ -299,6 +299,9 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
             emit Credited(msg.sender, excess);
         }
         emit Sold(collection, tokenId, l.seller, msg.sender, l.price, fee);
+        // `l.seller` is the validated listing's seller (checked non-zero and re-verified against
+        // ownerOf/epoch above), never arbitrary caller input — slither cannot see the guard above.
+        // slither-disable-next-line arbitrary-send-erc20
         IERC721(collection).transferFrom(l.seller, msg.sender, tokenId);
     }
 
@@ -507,6 +510,10 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
         }
 
         if (deliverable) {
+            // `a.seller`/`a.highestBidder` come from the validated Auction row (non-zero-seller
+            // checked above, deliverability re-verified against ownerOf/epoch/lock just above), never
+            // arbitrary caller input — slither cannot see the guards above this call.
+            // slither-disable-next-line arbitrary-send-erc20
             try IERC721(collection).transferFrom(a.seller, a.highestBidder, tokenId) {
                 uint256 fee = (a.highestBid * a.feeBps) / 10_000;
                 uint256 net = a.highestBid - fee;
