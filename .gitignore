@@ -8,3 +8,7 @@ broadcast/**/dry-run/
 .env
 .env.*
 !.env.example
+# Fork rehearsals of DeployAll (ARCNS_DRY_RUN=1) — the live address book is deployments/<chainId>.json
+deployments/*.dry-run.json
+# forge script broadcast logs are never committed; the address book is deployments/<chainId>.json
+broadcast/
