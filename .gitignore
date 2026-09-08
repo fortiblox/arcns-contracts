@@ -10,5 +10,8 @@ broadcast/**/dry-run/
 !.env.example
 # Fork rehearsals of DeployAll (ARCNS_DRY_RUN=1) — the live address book is deployments/<chainId>.json
 deployments/*.dry-run.json
+# Market phase-1 rehearsal output (DeployMarket without --broadcast); the live run appends .market to the book instead.
+# deployments/<chainId>.market-grant.json (phase 2) is deterministic and IS committed: the reviewed governance payload.
+deployments/*.market-dry-run.json
 # forge script broadcast logs are never committed; the address book is deployments/<chainId>.json
 broadcast/

@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+import {Script, console2} from "forge-std/Script.sol";
+import {VmSafe} from "forge-std/Vm.sol";
+
+/// @title MarketScriptBase — address-book plumbing shared by the three WP-7632 market scripts
+/// @notice Which JSON file each phase reads and writes (`docs/runbooks/market-deploy.md` §1):
+///
+///           input book   ARCNS_ADDRESS_BOOK if set (e.g. `deployments/5042002.json` for a fork rehearsal
+///                        against the LIVE M1/M2 book), else `deployments/<chainId>.dry-run.json` when
+///                        ARCNS_DRY_RUN=1, else `deployments/<chainId>.json`.
+///           market book  the `.market` object: read from the input book when present (a broadcast phase 1
+///                        appended it), else from `deployments/<chainId>.market-dry-run.json` (a rehearsed
+///                        phase 1 wrote it there) — never from anywhere else.
+///           live write   only a real `forge script --broadcast` / `--resume` with ARCNS_DRY_RUN unset
+///                        may touch the input book; every other run (simulation, `--rpc-url` without
+///                        `--broadcast`, ARCNS_DRY_RUN=1) writes `deployments/<chainId>.market-dry-run.json`
+///                        so a rehearsal can never overwrite `deployments/5042002.json`.
+abstract contract MarketScriptBase is Script {
+    function _bookPath() internal view returns (string memory) {
+        string memory explicit = vm.envOr("ARCNS_ADDRESS_BOOK", string(""));
+        if (bytes(explicit).length != 0) return explicit;
+        string memory suffix = vm.envOr("ARCNS_DRY_RUN", false) ? ".dry-run.json" : ".json";
+        return string.concat("deployments/", vm.toString(block.chainid), suffix);
+    }
+
+    function _marketDryRunPath() internal view returns (string memory) {
+        return string.concat("deployments/", vm.toString(block.chainid), ".market-dry-run.json");
+    }
+
+    function _grantPath() internal view returns (string memory) {
+        return string.concat("deployments/", vm.toString(block.chainid), ".market-grant.json");
+    }
+
+    /// @dev True only when this run may append to the input book (see the title NatSpec).
+    function _isLiveWrite() internal view returns (bool) {
+        if (vm.envOr("ARCNS_DRY_RUN", false)) return false;
+        return vm.isContext(VmSafe.ForgeContext.ScriptBroadcast) || vm.isContext(VmSafe.ForgeContext.ScriptResume);
+    }
+
+    /// @dev Returns the JSON holding the `.market` object and the path it came from (for the logs).
+    function _readMarketBook(string memory bookJson, string memory bookPath)
+        internal
+        view
+        returns (string memory json, string memory path)
+    {
+        if (vm.keyExistsJson(bookJson, ".market")) return (bookJson, bookPath);
+        path = _marketDryRunPath();
+        require(
+            vm.exists(path),
+            string.concat(
+                "market address book missing: no .market in ", bookPath, " and no ", path, " (run phase 1 first)"
+            )
+        );
+        return (vm.readFile(path), path);
+    }
+
+    function _requireAddr(address a, string memory what) internal pure {
+        require(a != address(0), string.concat("address book incomplete: ", what));
+    }
+
+    function _logBook(string memory role, string memory path) internal pure {
+        console2.log(string.concat(role, " ", path));
+    }
+}

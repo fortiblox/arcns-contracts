@@ -19,6 +19,7 @@ interface IGenesis {
 ///         Run after DeployAll (GENESIS_ROLE still held by the deployer — reported, not failed) and again
 ///         after genesis seal (GENESIS_ROLE must then be empty for the deployer).
 ///           forge script script/VerifyRoles.s.sol --rpc-url $ARC_RPC_URL
+///         Market stack (M3, MARKET_ROLE included): `script/VerifyMarketRoles.s.sol` (WP-7632 phase 3).
 contract VerifyRoles is Script {
     bytes32 internal constant ADMIN = 0x00;
 
@@ -28,8 +29,7 @@ contract VerifyRoles is Script {
     bool internal ok = true;
 
     function run() external {
-        string memory suffix = vm.envOr("ARCNS_DRY_RUN", false) ? ".dry-run.json" : ".json";
-        json = vm.readFile(string.concat("deployments/", vm.toString(block.chainid), suffix));
+        json = vm.readFile(_bookPath());
         deployer = vm.parseJsonAddress(json, ".deployer");
         timelock = vm.parseJsonAddress(json, ".TimelockController");
         _checkTimelock();
@@ -45,6 +45,14 @@ contract VerifyRoles is Script {
         _checkTlds();
         console2.log(ok ? "ROLES_VERIFIED" : "ROLES_FAILED");
         require(ok, "ROLES_FAILED");
+    }
+
+    /// @dev ARCNS_ADDRESS_BOOK (explicit path, e.g. the live book on a fork) wins over the chain-id default.
+    function _bookPath() internal view returns (string memory) {
+        string memory explicit = vm.envOr("ARCNS_ADDRESS_BOOK", string(""));
+        if (bytes(explicit).length != 0) return explicit;
+        string memory suffix = vm.envOr("ARCNS_DRY_RUN", false) ? ".dry-run.json" : ".json";
+        return string.concat("deployments/", vm.toString(block.chainid), suffix);
     }
 
     function _checkTimelock() internal {
