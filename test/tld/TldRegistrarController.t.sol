@@ -1142,6 +1142,195 @@ contract TldRegistrarControllerTest is TldStackFixture {
     }
 
     // =============================================================================================
+    // Launch allowlist (WP-144)
+    // =============================================================================================
+
+    function _pairHash(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+        return a < b ? keccak256(abi.encodePacked(a, b)) : keccak256(abi.encodePacked(b, a));
+    }
+
+    /// @dev Two-leaf tree over `alice` and `bob`; returns the root and each one's single-hash proof.
+    function _twoLeafTree() internal view returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) {
+        bytes32 leafAlice = keccak256(bytes.concat(keccak256(abi.encode(alice))));
+        bytes32 leafBob = keccak256(bytes.concat(keccak256(abi.encode(bob))));
+        root = _pairHash(leafAlice, leafBob);
+        proofAlice = new bytes32[](1);
+        proofAlice[0] = leafBob;
+        proofBob = new bytes32[](1);
+        proofBob[0] = leafAlice;
+    }
+
+    function test_setAllowlist_reverts_not_admin() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alice, bytes32(0))
+        );
+        vm.prank(alice);
+        arc.controller.setAllowlist(keccak256("root"), uint64(block.timestamp + 1 days));
+    }
+
+    function test_setAllowlist_reverts_bad_sunset_bounds() public {
+        vm.startPrank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(ITldRegistrarController.AllowlistSunsetInvalid.selector, uint64(block.timestamp))
+        );
+        arc.controller.setAllowlist(keccak256("root"), uint64(block.timestamp));
+
+        uint64 tooFar = uint64(block.timestamp + arc.controller.MAX_ALLOWLIST_WINDOW() + 1);
+        vm.expectRevert(abi.encodeWithSelector(ITldRegistrarController.AllowlistSunsetInvalid.selector, tooFar));
+        arc.controller.setAllowlist(keccak256("root"), tooFar);
+
+        uint64 atCeiling = uint64(block.timestamp + arc.controller.MAX_ALLOWLIST_WINDOW());
+        arc.controller.setAllowlist(keccak256("root"), atCeiling);
+        assertEq(arc.controller.allowlistRoot(), keccak256("root"));
+        assertEq(arc.controller.allowlistSunset(), atCeiling);
+
+        vm.expectRevert(abi.encodeWithSelector(ITldRegistrarController.AllowlistSunsetInvalid.selector, uint64(1)));
+        arc.controller.setAllowlist(bytes32(0), uint64(1));
+        vm.stopPrank();
+    }
+
+    function test_setAllowlist_clears_and_emits() public {
+        uint64 sunset = uint64(block.timestamp + 1 days);
+        vm.prank(admin);
+        vm.expectEmit(true, true, true, true, address(arc.controller));
+        emit ITldRegistrarController.AllowlistSet(keccak256("root"), sunset);
+        arc.controller.setAllowlist(keccak256("root"), sunset);
+        assertTrue(arc.controller.allowlistActive());
+
+        vm.prank(admin);
+        vm.expectEmit(true, true, true, true, address(arc.controller));
+        emit ITldRegistrarController.AllowlistSet(bytes32(0), 0);
+        arc.controller.setAllowlist(bytes32(0), 0);
+        assertFalse(arc.controller.allowlistActive());
+    }
+
+    /// @dev Each `TldRegistrarController` instance is independently gated: setting `.arc`'s allowlist
+    ///      must not touch `.circle`'s (per-TLD control, mirroring the retirement/sunset independence
+    ///      already required of every other per-TLD flag, SR-09).
+    function test_allowlist_is_independent_per_tld_instance() public {
+        vm.prank(admin);
+        arc.controller.setAllowlist(keccak256("root"), uint64(block.timestamp + 1 days));
+        assertTrue(arc.controller.allowlistActive());
+        assertFalse(circle.controller.allowlistActive());
+        assertEq(circle.controller.allowlistRoot(), bytes32(0));
+    }
+
+    function test_register_reverts_AllowlistRequired_while_active() public {
+        _seal(arc);
+        (bytes32 root,,) = _twoLeafTree();
+        vm.prank(admin);
+        arc.controller.setAllowlist(root, uint64(block.timestamp + 1 days));
+
+        ITldRegistrarController.Registration memory r =
+            _registration("alice", alice, keccak256("s"), address(0), false);
+        _commitAndWait(arc, r, alice);
+        uint256 price = arc.controller.quote("alice");
+        vm.deal(alice, price);
+        vm.expectRevert(ITldRegistrarController.AllowlistRequired.selector);
+        vm.prank(alice);
+        arc.controller.register{value: price}(r, price);
+    }
+
+    function test_registerWithProof_happy_path_for_both_allowlisted_owners() public {
+        _seal(arc);
+        (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) = _twoLeafTree();
+        vm.prank(admin);
+        arc.controller.setAllowlist(root, uint64(block.timestamp + 1 days));
+
+        ITldRegistrarController.Registration memory rAlice =
+            _registration("alice", alice, keccak256("s"), address(0), false);
+        _commitAndWait(arc, rAlice, alice);
+        uint256 price = arc.controller.quote("alice");
+        vm.deal(alice, price);
+        vm.prank(alice);
+        arc.controller.registerWithProof{value: price}(rAlice, price, proofAlice);
+        assertEq(arc.registrar.ownerOf(uint256(_labelhash("alice"))), alice);
+
+        ITldRegistrarController.Registration memory rBob = _registration("bob", bob, keccak256("s"), address(0), false);
+        _commitAndWait(arc, rBob, bob);
+        price = arc.controller.quote("bob");
+        vm.deal(bob, price);
+        vm.prank(bob);
+        arc.controller.registerWithProof{value: price}(rBob, price, proofBob);
+        assertEq(arc.registrar.ownerOf(uint256(_labelhash("bob"))), bob);
+    }
+
+    function test_registerWithProof_reverts_NotAllowlisted_for_unlisted_owner_or_wrong_proof() public {
+        _seal(arc);
+        (bytes32 root, bytes32[] memory proofAlice,) = _twoLeafTree();
+        vm.prank(admin);
+        arc.controller.setAllowlist(root, uint64(block.timestamp + 1 days));
+
+        // stranger is not in the tree at all
+        ITldRegistrarController.Registration memory rStranger =
+            _registration("coin", stranger, keccak256("s"), address(0), false);
+        _commitAndWait(arc, rStranger, stranger);
+        uint256 price = arc.controller.quote("coin");
+        vm.deal(stranger, price);
+        bytes32[] memory emptyProof = new bytes32[](0);
+        vm.expectRevert(abi.encodeWithSelector(ITldRegistrarController.NotAllowlisted.selector, stranger));
+        vm.prank(stranger);
+        arc.controller.registerWithProof{value: price}(rStranger, price, emptyProof);
+
+        // alice's proof does not prove bob
+        ITldRegistrarController.Registration memory rBob = _registration("bank", bob, keccak256("s"), address(0), false);
+        _commitAndWait(arc, rBob, bob);
+        price = arc.controller.quote("bank");
+        vm.deal(bob, price);
+        vm.expectRevert(abi.encodeWithSelector(ITldRegistrarController.NotAllowlisted.selector, bob));
+        vm.prank(bob);
+        arc.controller.registerWithProof{value: price}(rBob, price, proofAlice);
+    }
+
+    function test_registerWithProof_ignores_proof_once_inactive() public {
+        _seal(arc);
+        (bytes32 root,,) = _twoLeafTree();
+        uint64 sunset = uint64(block.timestamp + 1 days);
+        vm.prank(admin);
+        arc.controller.setAllowlist(root, sunset);
+
+        vm.warp(sunset); // exclusive boundary: allowlistActive() is false AT sunset
+        assertFalse(arc.controller.allowlistActive());
+
+        // stranger is not on the list, but the window is closed: plain register works...
+        ITldRegistrarController.Registration memory r = _registration("dao", stranger, keccak256("s"), address(0), false);
+        _commitAndWait(arc, r, stranger);
+        uint256 price = arc.controller.quote("dao");
+        vm.deal(stranger, price);
+        vm.prank(stranger);
+        arc.controller.register{value: price}(r, price);
+        assertEq(arc.registrar.ownerOf(uint256(_labelhash("dao"))), stranger);
+
+        // ...and so does registerWithProof with a garbage proof, since the gate is skipped entirely.
+        ITldRegistrarController.Registration memory r2 =
+            _registration("eth", stranger, keccak256("s"), address(0), false);
+        _commitAndWait(arc, r2, stranger);
+        price = arc.controller.quote("eth");
+        vm.deal(stranger, price);
+        bytes32[] memory garbage = new bytes32[](1);
+        garbage[0] = keccak256("not-a-real-sibling");
+        vm.prank(stranger);
+        arc.controller.registerWithProof{value: price}(r2, price, garbage);
+        assertEq(arc.registrar.ownerOf(uint256(_labelhash("eth"))), stranger);
+    }
+
+    function testFuzz_setAllowlist_sunset_bounds(uint64 sunset) public {
+        vm.assume(sunset != 0);
+        uint256 t0 = block.timestamp;
+        uint256 maxWindow = arc.controller.MAX_ALLOWLIST_WINDOW();
+        vm.startPrank(admin);
+        if (sunset <= t0 || sunset > t0 + maxWindow) {
+            vm.expectRevert(abi.encodeWithSelector(ITldRegistrarController.AllowlistSunsetInvalid.selector, sunset));
+            arc.controller.setAllowlist(keccak256("root"), sunset);
+        } else {
+            arc.controller.setAllowlist(keccak256("root"), sunset);
+            assertEq(arc.controller.allowlistSunset(), sunset);
+            assertEq(arc.controller.allowlistActive(), block.timestamp < sunset);
+        }
+        vm.stopPrank();
+    }
+
+    // =============================================================================================
     // Gas (reported, not asserted)
     // =============================================================================================
 
