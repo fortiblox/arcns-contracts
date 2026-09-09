@@ -377,9 +377,17 @@ contract MarketInvariantTest is StdInvariant, Test {
     ///      always under `MAX_BATCH_BUY_SIZE` and never empty — so `EmptyBatch`/`BatchTooLarge` can
     ///      never fire here, and per docs/architecture/batch-buy.md §2 no other condition should ever
     ///      revert the call. A `catch {}` in the handler around this call would silently hide a
-    ///      whole-batch revert (exactly the bug fixed in `_tryBuyOne` — an un-caught `transferFrom`
-    ///      reverting the entire batch over one seller revoking approval); this asserts that in
-    ///      16,384+ calls across the campaign, `batchBuy` never once revert unexpectedly.
+    ///      whole-batch revert; this asserts that in 16,384+ calls across the campaign, `batchBuy`
+    ///      never once reverts unexpectedly.
+    ///      NOTE (second peer review, 2026-09-09): the handler's `collection.setApprovalForAll` is
+    ///      granted once in the constructor and never revoked by any handler action, so this campaign
+    ///      cannot reach a failed `transferFrom` and does NOT exercise the `_tryBuyOne` fix's specific
+    ///      failure path — confirmed by reverting that fix and re-running the campaign, which still
+    ///      passes (0 reverts). That regression is covered instead by the dedicated unit test
+    ///      `test_batchBuy_seller_revokes_approval_after_listing_skips_only_that_item`
+    ///      (test/market/BatchBuy.t.sol). This invariant still has real value — it catches any OTHER
+    ///      unexpected revert path across a wide, randomized state space — it just isn't proof against
+    ///      this one specific class.
     function invariant_batchBuy_never_reverts_unexpectedly() public view {
         assertFalse(
             handler.batchBuyUnexpectedRevert(),
