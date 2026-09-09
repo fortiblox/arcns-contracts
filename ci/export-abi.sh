@@ -15,6 +15,7 @@ for spec in \
   src/tld/TldMetadata.sol:TldMetadata \
   src/pricing/ArcNSPriceOracle.sol:ArcNSPriceOracle \
   src/resolver/ArcNSResolver.sol:ArcNSResolver \
+  src/market/ArcNSMarket.sol:ArcNSMarket \
   lib/ens-contracts/contracts/registry/ENSRegistry.sol:ENSRegistry \
   lib/ens-contracts/contracts/root/Root.sol:Root \
   lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol:ReverseRegistrar \
