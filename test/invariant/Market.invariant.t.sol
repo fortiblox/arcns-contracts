@@ -221,6 +221,35 @@ contract MarketHandler is Test {
             successes++;
         } catch {}
     }
+
+    /// @dev #7611: buys up to 3 tokens in one call, funded exactly for whichever of the three are
+    ///      currently listed (unlisted slots contribute 0 to the sent value and are skipped by the
+    ///      contract, not reverted). Mirrors `buy`'s own locked-token ghost so INV-5 covers the batch
+    ///      path too.
+    function batchBuy(uint256 actorSeed, uint256 tokenSeed1, uint256 tokenSeed2, uint256 tokenSeed3) external {
+        calls++;
+        address buyer = _actor(actorSeed);
+        uint256[3] memory seeds = [tokenSeed1, tokenSeed2, tokenSeed3];
+
+        IArcNSMarket.BatchBuyItem[] memory items = new IArcNSMarket.BatchBuyItem[](3);
+        bool[] memory wasLocked = new bool[](3);
+        uint256 totalValue;
+        for (uint256 i = 0; i < 3; i++) {
+            uint256 tokenId = _token(seeds[i]);
+            IArcNSMarket.Listing memory l = market.getListing(address(collection), tokenId);
+            items[i] =
+                IArcNSMarket.BatchBuyItem({collection: address(collection), tokenId: tokenId, expectedPrice: l.price});
+            wasLocked[i] = market.isLocked(address(collection), tokenId);
+            if (l.seller != address(0)) totalValue += l.price;
+        }
+        vm.prank(buyer);
+        try market.batchBuy{value: totalValue}(items) returns (bool[] memory bought, uint256) {
+            successes++;
+            for (uint256 i = 0; i < 3; i++) {
+                if (bought[i] && wasLocked[i]) soldOrSettledWhileLocked = true;
+            }
+        } catch {}
+    }
 }
 
 /// @notice INV-4 (escrow solvency), INV-5 (never moves a locked token), INV-6 (`endsAt` never
@@ -262,7 +291,7 @@ contract MarketInvariantTest is StdInvariant, Test {
         handler = new MarketHandler(market, collection, nameLocks, treasury);
 
         targetContract(address(handler));
-        bytes4[] memory selectors = new bytes4[](11);
+        bytes4[] memory selectors = new bytes4[](12);
         selectors[0] = MarketHandler.warp.selector;
         selectors[1] = MarketHandler.toggleLock.selector;
         selectors[2] = MarketHandler.list.selector;
@@ -274,6 +303,7 @@ contract MarketInvariantTest is StdInvariant, Test {
         selectors[8] = MarketHandler.startAuction.selector;
         selectors[9] = MarketHandler.placeBid.selector;
         selectors[10] = MarketHandler.settleAuction.selector;
+        selectors[11] = MarketHandler.batchBuy.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 

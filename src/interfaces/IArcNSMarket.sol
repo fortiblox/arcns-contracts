@@ -43,6 +43,13 @@ interface IArcNSMarket {
         uint64 epochAtStart;
     }
 
+    /// @notice One line item for `batchBuy` — same triple `buy` takes, batched (#7611).
+    struct BatchBuyItem {
+        address collection;
+        uint256 tokenId;
+        uint256 expectedPrice;
+    }
+
     // ---- events (onchain-design §9)
     event CollectionAllowed(address indexed collection, bool allowed);
     event MarketConfigUpdated(MarketConfig config);
@@ -94,6 +101,9 @@ interface IArcNSMarket {
     event AuctionCancelled(address indexed collection, uint256 indexed tokenId);
     event Credited(address indexed to, uint256 amount);
     event Withdrawn(address indexed to, uint256 amount);
+    /// @notice #7611: one `batchBuy` call finished. `boughtCount <= itemCount`; `totalCharged` is the
+    ///         sum of the prices of the items that succeeded (see `Sold` for the per-item detail).
+    event BatchBuyExecuted(address indexed buyer, uint256 itemCount, uint256 boughtCount, uint256 totalCharged);
 
     // ---- errors
     error CollectionNotAllowed(address collection);
@@ -126,10 +136,17 @@ interface IArcNSMarket {
     error WithdrawFailed(address to, uint256 amount);
     error ZeroAddress();
     error ValueNotAccepted();
+    /// @notice #7611: `batchBuy` requires at least one item.
+    error EmptyBatch();
+    /// @notice #7611: `batchBuy` requires `items.length <= MAX_BATCH_BUY_SIZE`.
+    error BatchTooLarge(uint256 provided, uint256 max);
 
     // ---- constants
     function MIN_AUCTION_DURATION() external view returns (uint32); // 600s
     function MAX_AUCTION_DURATION() external view returns (uint32); // 30 days
+    /// @notice #7611: upper bound on `batchBuy`'s `items.length` (policy cap, not a gas-derived limit —
+    ///         see `docs/architecture/onchain-design.md` batch-buy section for the measured per-item cost).
+    function MAX_BATCH_BUY_SIZE() external view returns (uint256);
 
     // ---- admin (DEFAULT_ADMIN_ROLE = timelock)
     function setCollectionAllowed(address collection, bool allowed) external;
@@ -151,6 +168,15 @@ interface IArcNSMarket {
     function updateListingPrice(address collection, uint256 tokenId, uint256 newPrice) external;
     function cancelListing(address collection, uint256 tokenId) external; // seller or current owner
     function buy(address collection, uint256 tokenId, uint256 expectedPrice) external payable;
+    /// @notice #7611: attempts every item; a listing that is gone, stale, mismatched-price, expired,
+    ///         locked, or unaffordable from the remaining `msg.value` is SKIPPED, not reverted — see
+    ///         `bought[i]` for the per-item outcome. Unspent `msg.value` (everything not charged to a
+    ///         successful item) is credited to the caller's pull ledger (SR-31), never reverted or
+    ///         stranded, even if every item in the batch failed.
+    function batchBuy(BatchBuyItem[] calldata items)
+        external
+        payable
+        returns (bool[] memory bought, uint256 totalCharged);
 
     // ---- offers (escrowed, WP-120)
     function placeOffer(address collection, uint256 tokenId, uint40 expiresAt) external payable;

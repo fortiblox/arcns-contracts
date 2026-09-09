@@ -52,6 +52,13 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
     uint32 public constant MIN_AUCTION_DURATION = 600 seconds;
     /// @inheritdoc IArcNSMarket
     uint32 public constant MAX_AUCTION_DURATION = 30 days;
+    /// @inheritdoc IArcNSMarket
+    /// @dev Policy cap (#7611), not a gas-derived ceiling: a single `buy` measures well under 200k gas
+    ///      (see the gas table in the PR / `docs/architecture/onchain-design.md`), so even the cap's
+    ///      worst case (every item valid) stays a small fraction of a block's gas limit; the cap exists
+    ///      to keep a batch transaction's calldata and worst-case gas predictable for wallets/UX, not
+    ///      because a larger batch would be unsafe.
+    uint256 public constant MAX_BATCH_BUY_SIZE = 40;
 
     /// @notice Treasury Safe credited with the fee share of every sale (pull-based, SR-31).
     address public immutable treasury;
@@ -303,6 +310,86 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
         // ownerOf/epoch above), never arbitrary caller input — slither cannot see the guard above.
         // slither-disable-next-line arbitrary-send-erc20
         IERC721(collection).transferFrom(l.seller, msg.sender, tokenId);
+    }
+
+    /// @inheritdoc IArcNSMarket
+    /// @dev #7611: best-effort, never reverts on a per-item problem — see `_tryBuyOne`. `nonReentrant`
+    ///      covers the whole batch (a single external re-entrant call could otherwise re-drive
+    ///      `batchBuy`/`buy` against a `remaining` value snapshot that no longer matches this
+    ///      contract's actual balance). Not `whenNotPaused`: like `buy`, a batch purchase acts on
+    ///      EXISTING listings, never creates one, so it is outside the SR-35 pausable surface.
+    function batchBuy(BatchBuyItem[] calldata items)
+        external
+        payable
+        nonReentrant
+        returns (bool[] memory bought, uint256 totalCharged)
+    {
+        uint256 n = items.length;
+        if (n == 0) revert EmptyBatch();
+        if (n > MAX_BATCH_BUY_SIZE) revert BatchTooLarge(n, MAX_BATCH_BUY_SIZE);
+
+        bought = new bool[](n);
+        uint256 remaining = msg.value;
+        uint256 boughtCount = 0;
+        for (uint256 i = 0; i < n; i++) {
+            BatchBuyItem calldata item = items[i];
+            (bool ok, uint256 price) = _tryBuyOne(item.collection, item.tokenId, item.expectedPrice, remaining);
+            if (ok) {
+                bought[i] = true;
+                remaining -= price;
+                totalCharged += price;
+                boughtCount++;
+            }
+        }
+        // Whatever was never charged to a successful item — including the ENTIRE value if every item
+        // failed — is credited to the buyer's own pull ledger (SR-31): a batch purchase never reverts
+        // and never strands funds, matching `buy`'s own excess-credit handling per item.
+        if (remaining > 0) {
+            withdrawable[msg.sender] += remaining;
+            emit Credited(msg.sender, remaining);
+        }
+        emit BatchBuyExecuted(msg.sender, n, boughtCount, totalCharged);
+    }
+
+    /// @dev One line item of `batchBuy`: identical validation and settlement to `buy`, except every
+    ///      "this specific item cannot be bought right now" condition returns `(false, 0)` instead of
+    ///      reverting, so one bad item in a cart never blocks the rest (docs/architecture/onchain-design.md
+    ///      batch-buy section). `valueAvailable` is the caller's REMAINING unspent `msg.value` at this
+    ///      point in the batch, not the full `msg.value` — each item can only spend what earlier items
+    ///      in the same batch left behind.
+    function _tryBuyOne(address collection, uint256 tokenId, uint256 expectedPrice, uint256 valueAvailable)
+        private
+        returns (bool ok, uint256 price)
+    {
+        Listing memory l = _listings[collection][tokenId];
+        if (l.seller == address(0)) return (false, 0);
+        if (l.price != expectedPrice) return (false, 0);
+        if (block.timestamp > l.expiresAt) return (false, 0);
+        if (_isLocked(collection, tokenId)) return (false, 0);
+        if (!EpochGuard.stillValid(
+                EpochGuard.Snapshot({owner: l.ownerAtList, epoch: l.epochAtList}), collection, tokenId
+            )) {
+            return (false, 0);
+        }
+        if (valueAvailable < l.price) return (false, 0);
+
+        uint256 fee = (l.price * l.feeBps) / 10_000;
+        uint256 net = l.price - fee;
+        price = l.price;
+
+        delete _listings[collection][tokenId];
+        if (fee > 0) {
+            withdrawable[treasury] += fee;
+            emit Credited(treasury, fee);
+        }
+        withdrawable[l.seller] += net;
+        emit Credited(l.seller, net);
+        emit Sold(collection, tokenId, l.seller, msg.sender, l.price, fee);
+        // Same guard as `buy`: `l.seller` comes from a validated listing, re-verified against
+        // ownerOf/epoch immediately above, never arbitrary caller input.
+        // slither-disable-next-line arbitrary-send-erc20
+        IERC721(collection).transferFrom(l.seller, msg.sender, tokenId);
+        return (true, price);
     }
 
     // ---------------------------------------------------------------------------------------------
