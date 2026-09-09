@@ -339,4 +339,13 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
+
+    /// @dev INV-7: once sealed, `GENESIS_ROLE` can never be granted again. Mirrors
+    ///      TldRegistrarController._grantRole (F-C11) — sealGenesis's own revoke
+    ///      only removes the caller; without this override a second admin action
+    ///      could still hand GENESIS_ROLE to a new address after the seal.
+    function _grantRole(bytes32 role, address account) internal override returns (bool) {
+        if (role == GENESIS_ROLE && genesisSealed) revert GenesisAlreadySealed();
+        return super._grantRole(role, account);
+    }
 }

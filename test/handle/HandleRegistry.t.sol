@@ -643,6 +643,36 @@ contract HandleRegistryTest is Test {
         registry.setRecovery(id, recoveryKey);
     }
 
+    /// F-C3: an active (non-pending) recovery key set before tokenization must not
+    /// survive it — tokenize() only checked for a *pending* recovery, so a
+    /// previously armed key stayed live afterwards and could later
+    /// initiateRecovery() on a bearer token that had already changed hands.
+    function test_tokenize_clears_an_armed_but_not_pending_recovery_key() public {
+        uint256 id = _register("alice", alice);
+        vm.prank(alice);
+        registry.setRecovery(id, recoveryKey);
+        assertEq(registry.recoveryOf(id), recoveryKey);
+        assertFalse(registry.recoveryPending(id));
+
+        vm.expectEmit(true, true, true, true, address(registry));
+        emit IHandleRegistry.RecoverySet(id, address(0));
+        _tokenize(id, alice);
+
+        assertEq(registry.recoveryOf(id), address(0), "F-C3: stale recovery key cleared by tokenize");
+
+        // the old recovery key can no longer initiate anything post-tokenize
+        vm.prank(recoveryKey);
+        vm.expectRevert(abi.encodeWithSelector(IHandleRegistry.NoRecoverySet.selector, id));
+        registry.initiateRecovery(id, bob);
+
+        // sale/transfer of the bearer token now proceeds without interference
+        vm.prank(alice);
+        registry.approve(market, id);
+        vm.prank(market);
+        registry.transferFrom(alice, bob, id);
+        assertEq(registry.ownerOf(id), bob);
+    }
+
     // ---- tokenize -----------------------------------------------------------------------------------
 
     function test_tokenize_exact_price_treasury_push_and_counter() public {

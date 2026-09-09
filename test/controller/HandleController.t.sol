@@ -544,6 +544,24 @@ contract HandleControllerTest is Test {
         controller.registerReservedBatch(names, types);
     }
 
+    /// F-C11 / INV-7: after seal, GENESIS_ROLE can never be granted to anyone new,
+    /// not even by DEFAULT_ADMIN_ROLE — mirrors
+    /// TldRegistrarController.t.sol::test_sealGenesis_revokes_role_and_is_final.
+    function test_grantRole_genesis_reverts_after_seal() public {
+        (string[] memory names, uint8[] memory types) = _names(1);
+        vm.prank(deployer);
+        controller.registerReservedBatch(names, types);
+        vm.prank(deployer);
+        controller.sealGenesis(ROOT);
+        assertTrue(controller.genesisSealed());
+        assertFalse(controller.hasRole(ArcNSConstants.GENESIS_ROLE, deployer));
+
+        vm.expectRevert(IHandleController.GenesisAlreadySealed.selector);
+        vm.prank(admin);
+        controller.grantRole(ArcNSConstants.GENESIS_ROLE, bob);
+        assertFalse(controller.hasRole(ArcNSConstants.GENESIS_ROLE, bob));
+    }
+
     // ---- pause (SR-62) ----------------------------------------------------------------------------
 
     function test_pause_blocks_register_but_not_withdraw_and_unpause_is_admin_only() public {

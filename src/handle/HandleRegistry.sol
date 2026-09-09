@@ -262,6 +262,17 @@ contract HandleRegistry is IHandleRegistry, IERC4906, ERC721, AccessControl {
         if (msg.value != price) revert IncorrectPayment(price, msg.value);
 
         h.transferable = true;
+        // F-C3: a recovery config from before tokenization is a competing
+        // authority model once the handle is a bearer NFT (T-NFT-3) — without
+        // this, a recovery address set while non-transferable stays live
+        // after tokenize() (only a *pending* recovery was checked above), and
+        // can later initiateRecovery() to block every sale / eventually seize
+        // the token. `_update` already clears recovery on every transfer;
+        // tokenize is itself an authority change and gets the same treatment.
+        if (_recovery[tokenId] != address(0)) {
+            delete _recovery[tokenId];
+            emit RecoverySet(tokenId, address(0));
+        }
         oracle.recordTokenize(HANDLE_ROOT);
         if (price > 0) {
             (bool ok,) = treasury.call{value: price}("");
