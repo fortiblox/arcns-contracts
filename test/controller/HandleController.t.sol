@@ -604,4 +604,205 @@ contract HandleControllerTest is Test {
         assertFalse(ok, "commit is not payable");
         assertEq(address(controller).balance, 0);
     }
+
+    // ---- launch allowlist (WP-144) ------------------------------------------------------------------
+
+    function _pairHash(bytes32 a, bytes32 b) internal pure returns (bytes32) {
+        return a < b ? keccak256(abi.encodePacked(a, b)) : keccak256(abi.encodePacked(b, a));
+    }
+
+    /// @dev Two-leaf tree over `alice` and `bob`; returns the root and each one's single-hash proof.
+    function _twoLeafTree() internal view returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) {
+        bytes32 leafAlice = keccak256(bytes.concat(keccak256(abi.encode(alice))));
+        bytes32 leafBob = keccak256(bytes.concat(keccak256(abi.encode(bob))));
+        root = _pairHash(leafAlice, leafBob);
+        proofAlice = new bytes32[](1);
+        proofAlice[0] = leafBob;
+        proofBob = new bytes32[](1);
+        proofBob[0] = leafAlice;
+    }
+
+    function test_setAllowlist_reverts_not_admin() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, alice, bytes32(0))
+        );
+        vm.prank(alice);
+        controller.setAllowlist(keccak256("root"), uint64(T0 + 1 days));
+    }
+
+    function test_setAllowlist_reverts_bad_sunset_bounds() public {
+        vm.startPrank(admin);
+        // sunset in the past / now
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.AllowlistSunsetInvalid.selector, uint64(T0)));
+        controller.setAllowlist(keccak256("root"), uint64(T0));
+
+        // sunset beyond MAX_ALLOWLIST_WINDOW
+        uint64 tooFar = uint64(T0 + controller.MAX_ALLOWLIST_WINDOW() + 1);
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.AllowlistSunsetInvalid.selector, tooFar));
+        controller.setAllowlist(keccak256("root"), tooFar);
+
+        // exactly at the ceiling is fine
+        uint64 atCeiling = uint64(T0 + controller.MAX_ALLOWLIST_WINDOW());
+        controller.setAllowlist(keccak256("root"), atCeiling);
+        assertEq(controller.allowlistRoot(), keccak256("root"));
+        assertEq(controller.allowlistSunset(), atCeiling);
+
+        // clearing with a non-zero sunset is rejected
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.AllowlistSunsetInvalid.selector, uint64(1)));
+        controller.setAllowlist(bytes32(0), uint64(1));
+        vm.stopPrank();
+    }
+
+    function test_setAllowlist_clears_and_emits() public {
+        vm.prank(admin);
+        vm.expectEmit(true, true, true, true, address(controller));
+        emit IHandleController.AllowlistSet(keccak256("root"), uint64(T0 + 1 days));
+        controller.setAllowlist(keccak256("root"), uint64(T0 + 1 days));
+        assertTrue(controller.allowlistActive());
+
+        vm.prank(admin);
+        vm.expectEmit(true, true, true, true, address(controller));
+        emit IHandleController.AllowlistSet(bytes32(0), 0);
+        controller.setAllowlist(bytes32(0), 0);
+        assertFalse(controller.allowlistActive());
+        assertEq(controller.allowlistRoot(), bytes32(0));
+        assertEq(controller.allowlistSunset(), 0);
+    }
+
+    function test_allowlist_inactive_by_default() public view {
+        assertFalse(controller.allowlistActive());
+        assertEq(controller.allowlistRoot(), bytes32(0));
+    }
+
+    function test_register_reverts_AllowlistRequired_while_active() public {
+        _seal();
+        (bytes32 root,,) = _twoLeafTree();
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+
+        _commit("alice", alice, alice);
+        vm.warp(T0 + MIN_AGE);
+        vm.expectRevert(IHandleController.AllowlistRequired.selector);
+        _register("alice", alice, PRICE);
+    }
+
+    function test_registerWithProof_happy_path_for_both_allowlisted_owners() public {
+        _seal();
+        (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) = _twoLeafTree();
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+
+        bytes32 c1 = _commit("alice", alice, alice);
+        vm.warp(T0 + MIN_AGE);
+        vm.prank(alice);
+        controller.registerWithProof{value: PRICE}("alice", alice, secret, HUMAN, PRICE, proofAlice);
+        assertEq(registry.ownerOf(registry.tokenIdOf("alice")), alice);
+        assertEq(controller.commitments(c1), 0);
+
+        bytes32 c2 = controller.makeCommitment("bob", bob, secret, HUMAN);
+        vm.prank(bob);
+        controller.commit(c2);
+        vm.warp(T0 + 2 * MIN_AGE);
+        vm.prank(bob);
+        controller.registerWithProof{value: PRICE}("bob", bob, secret, HUMAN, PRICE, proofBob);
+        assertEq(registry.ownerOf(registry.tokenIdOf("bob")), bob);
+    }
+
+    function test_registerWithProof_reverts_NotAllowlisted_for_unlisted_owner_or_wrong_proof() public {
+        _seal();
+        (bytes32 root, bytes32[] memory proofAlice,) = _twoLeafTree();
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+
+        // attacker is not in the tree at all; empty proof
+        _commit("coin", attacker, attacker);
+        vm.warp(T0 + MIN_AGE);
+        bytes32[] memory emptyProof = new bytes32[](0);
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.NotAllowlisted.selector, attacker));
+        vm.prank(attacker);
+        controller.registerWithProof{value: PRICE}("coin", attacker, secret, HUMAN, PRICE, emptyProof);
+
+        // alice's proof does not prove bob
+        _commit("bank", bob, bob);
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.NotAllowlisted.selector, bob));
+        vm.prank(bob);
+        controller.registerWithProof{value: PRICE}("bank", bob, secret, HUMAN, PRICE, proofAlice);
+    }
+
+    function test_registerWithProof_ignores_proof_once_inactive() public {
+        _seal();
+        (bytes32 root,,) = _twoLeafTree();
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+
+        // sunset elapses (exclusive boundary: allowlistActive() is false AT sunset)
+        vm.warp(T0 + 1 days);
+        assertFalse(controller.allowlistActive());
+
+        // attacker is not on the list, but the window is closed: plain register works...
+        _commit("dao", attacker, attacker);
+        vm.warp(T0 + 1 days + MIN_AGE);
+        _register("dao", attacker, PRICE);
+        assertEq(registry.ownerOf(registry.tokenIdOf("dao")), attacker);
+
+        // ...and so does registerWithProof with a garbage proof, since the gate is skipped entirely.
+        bytes32 c = controller.makeCommitment("eth", attacker, secret, HUMAN);
+        vm.prank(attacker);
+        controller.commit(c);
+        vm.warp(T0 + 1 days + 2 * MIN_AGE);
+        bytes32[] memory garbage = new bytes32[](1);
+        garbage[0] = keccak256("not-a-real-sibling");
+        vm.prank(attacker);
+        controller.registerWithProof{value: PRICE}("eth", attacker, secret, HUMAN, PRICE, garbage);
+        assertEq(registry.ownerOf(registry.tokenIdOf("eth")), attacker);
+    }
+
+    function test_isAllowlisted_view_ignores_active_window() public {
+        (bytes32 root, bytes32[] memory proofAlice,) = _twoLeafTree();
+        // never set on-chain; isAllowlisted is a pure proof check against whatever root is passed in
+        assertFalse(controller.isAllowlisted(alice, proofAlice)); // root is still zero here
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+        assertTrue(controller.isAllowlisted(alice, proofAlice));
+        vm.warp(T0 + 1 days); // window closed, but the proof-only view still reports true
+        assertTrue(controller.isAllowlisted(alice, proofAlice));
+    }
+
+    function testFuzz_setAllowlist_sunset_bounds(uint64 sunset) public {
+        vm.assume(sunset != 0);
+        uint256 maxWindow = controller.MAX_ALLOWLIST_WINDOW();
+        vm.startPrank(admin);
+        if (sunset <= T0 || sunset > T0 + maxWindow) {
+            vm.expectRevert(abi.encodeWithSelector(IHandleController.AllowlistSunsetInvalid.selector, sunset));
+            controller.setAllowlist(keccak256("root"), sunset);
+        } else {
+            controller.setAllowlist(keccak256("root"), sunset);
+            assertEq(controller.allowlistSunset(), sunset);
+            assertEq(controller.allowlistActive(), block.timestamp < sunset);
+        }
+        vm.stopPrank();
+    }
+
+    function testFuzz_registerWithProof_correct_proof_always_succeeds_wrong_owner_always_reverts(
+        bool useAliceAsOwner
+    ) public {
+        _seal();
+        (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) = _twoLeafTree();
+        vm.prank(admin);
+        controller.setAllowlist(root, uint64(T0 + 1 days));
+
+        address owner = useAliceAsOwner ? alice : bob;
+        bytes32[] memory correctProof = useAliceAsOwner ? proofAlice : proofBob;
+        bytes32[] memory wrongProof = useAliceAsOwner ? proofBob : proofAlice;
+
+        _commit("frank", owner, owner);
+        vm.warp(T0 + MIN_AGE);
+        vm.expectRevert(abi.encodeWithSelector(IHandleController.NotAllowlisted.selector, owner));
+        vm.prank(owner);
+        controller.registerWithProof{value: PRICE}("frank", owner, secret, HUMAN, PRICE, wrongProof);
+
+        vm.prank(owner);
+        controller.registerWithProof{value: PRICE}("frank", owner, secret, HUMAN, PRICE, correctProof);
+        assertEq(registry.ownerOf(registry.tokenIdOf("frank")), owner);
+    }
 }
