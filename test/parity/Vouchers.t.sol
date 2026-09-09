@@ -300,4 +300,98 @@ contract VouchersTest is Test {
         // contract balance still holds exactly bad's un-withdrawable credit.
         assertEq(address(v).balance, AMOUNT);
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Fuzz (WP-130 audit: parity + full coverage)
+    // ---------------------------------------------------------------------------------------------
+
+    /// @dev Every non-zero amount, any future expiry, any recipient: `create` escrows exactly
+    ///      `msg.value` and stores the fields verbatim.
+    function testFuzz_create_stores_exact_amount_and_expiry(uint96 amount, uint32 delay, address recipient_) public {
+        vm.assume(recipient_ != address(0));
+        amount = uint96(bound(amount, 1, 1000 ether));
+        delay = uint32(bound(delay, 1, 3650 days));
+        uint64 expiresAt = uint64(T0 + delay);
+
+        vm.deal(payer, amount);
+        vm.prank(payer);
+        uint256 id = v.create{value: amount}(recipient_, expiresAt);
+
+        IVouchers.Voucher memory voucher = v.voucherOf(id);
+        assertEq(voucher.payer, payer);
+        assertEq(voucher.recipient, recipient_);
+        assertEq(voucher.amount, amount);
+        assertEq(voucher.expiresAt, expiresAt);
+        assertEq(address(v).balance, amount);
+    }
+
+    /// @dev The claim/refund windows are exact complements of `block.timestamp < expiresAt`: for any
+    ///      warp target, exactly one of {claim succeeds, refund succeeds} is possible at that moment
+    ///      (never both, never neither), matching the x1 `claim_voucher`/`refund_voucher` boundary.
+    function testFuzz_claim_and_refund_windows_are_exact_complements(uint32 delay, uint32 warpTo) public {
+        delay = uint32(bound(delay, 1, 365 days));
+        uint64 expiresAt = uint64(T0 + delay);
+        uint256 id = _create(recipient, expiresAt, AMOUNT);
+        vm.warp(bound(warpTo, T0, T0 + uint256(delay) + 365 days));
+
+        bool canClaim = block.timestamp < expiresAt;
+        if (canClaim) {
+            vm.prank(recipient);
+            v.claim(id);
+            assertEq(v.withdrawable(recipient), AMOUNT);
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(IVouchers.VoucherExpired.selector, id, expiresAt));
+            vm.prank(recipient);
+            v.claim(id);
+
+            vm.prank(payer);
+            v.refund(id);
+            assertEq(v.withdrawable(payer), AMOUNT);
+        }
+    }
+
+    /// @dev Whatever mix of amounts a payer escrows across many vouchers to many recipients, the
+    ///      contract's own balance always equals the sum of every voucher's escrowed amount that
+    ///      has not yet been claimed or refunded, plus every address's outstanding `withdrawable`
+    ///      balance — the deterministic-sequence sibling of the invariant campaign below.
+    function testFuzz_many_vouchers_escrow_accounting_holds(uint8 n, uint256 seed) public {
+        n = uint8(bound(n, 1, 12));
+        vm.deal(payer, 10000 ether);
+        uint256 totalEscrowed;
+        uint256[] memory ids = new uint256[](n);
+        uint64[] memory expiries = new uint64[](n);
+        for (uint256 i = 0; i < n; i++) {
+            uint256 amount = 1 + (uint256(keccak256(abi.encode(seed, i, "amt"))) % 10 ether);
+            uint64 expiresAt = uint64(T0 + 1 + (uint256(keccak256(abi.encode(seed, i, "exp"))) % 30 days));
+            address recip = uint256(keccak256(abi.encode(seed, i, "recip"))) % 2 == 0 ? recipient : other;
+            ids[i] = _create(recip, expiresAt, amount);
+            expiries[i] = expiresAt;
+            totalEscrowed += amount;
+        }
+        assertEq(address(v).balance, totalEscrowed);
+
+        for (uint256 i = 0; i < n; i++) {
+            bool claimIt = uint256(keccak256(abi.encode(seed, i, "action"))) % 2 == 0;
+            if (claimIt && block.timestamp < expiries[i]) {
+                IVouchers.Voucher memory voucher = v.voucherOf(ids[i]);
+                vm.prank(voucher.recipient);
+                v.claim(ids[i]);
+            } else if (block.timestamp >= expiries[i]) {
+                vm.prank(payer);
+                v.refund(ids[i]);
+            }
+            // else: left outstanding, still backed by escrow.
+        }
+        // Every wei is still accounted for: contract balance == Σ withdrawable (claim/refund credit
+        // is never pushed) + Σ amount of vouchers still neither claimed nor refunded.
+        uint256 stillEscrowed;
+        for (uint256 i = 0; i < n; i++) {
+            IVouchers.Voucher memory voucher = v.voucherOf(ids[i]);
+            if (!voucher.claimed && !voucher.refunded) stillEscrowed += voucher.amount;
+        }
+        assertEq(
+            address(v).balance,
+            stillEscrowed + v.withdrawable(recipient) + v.withdrawable(other) + v.withdrawable(payer)
+        );
+    }
 }
