@@ -1,5 +1,7 @@
 {
-  "_comment": "WP-124 MarketInit config template. Empty by default -- the CEO fills in real attestor and integrator addresses before running MarketInit.s.sol against a live deploy. rateBps must be <= IntegratorRegistry.CAP_BPS() (4000 / 40%).",
+  "_comment": "WP-124 phase 4 (MarketInit.s.sol) config template. Empty by default -- the CEO fills in real attestor and integrator addresses, then runs the read-only script, which diffs this against the live modules and prints the Admin Safe -> TimelockController scheduleBatch/executeBatch payload (the modules' DEFAULT_ADMIN_ROLE is the timelock; the deployer cannot configure them). rateBps is optional and must be <= IntegratorRegistry.CAP_BPS() (4000 = 40%); revokeAttestors / revokeIntegrators are optional.",
   "attestors": [],
-  "integrators": []
+  "integrators": [],
+  "revokeAttestors": [],
+  "revokeIntegrators": []
 }

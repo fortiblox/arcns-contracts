@@ -27,6 +27,9 @@ import {Salts} from "./lib/Salts.sol";
 ///           2. `GrantMarketRole.s.sol` (read-only; prints the timelock op)   → Admin Safe schedules,
 ///              waits `minDelay` (1 h on testnet), executes                   → MARKET_ROLE granted
 ///           3. `VerifyMarketRoles.s.sol` (read-only)                         → `ROLES_VERIFIED`
+///           4. `MarketInit.s.sol` (read-only; prints the timelock batch)      → attestors / integrators
+///              configured by the same Safe → schedule → 1 h → execute path (the modules' admin is the
+///              timelock too, so the deployer cannot configure them either)
 ///         Until phase 2 executes, the market is fully deployed and governed but `HandleRegistry`
 ///         refuses market-driven transfers of handles (soulbound-bypass path needs MARKET_ROLE); TLD
 ///         names (plain ERC-721 registrars) trade immediately.
@@ -78,6 +81,7 @@ contract DeployMarket is MarketScriptBase {
 
         MarketDeployLib.Book memory predicted = MarketDeployLib.predict(p);
         _logBookAddresses("PREDICTED", predicted);
+        bool fresh = address(predicted.market).code.length == 0;
 
         MarketDeployLib.Book memory b = MarketDeployLib.deployMarketStack(p);
         vm.stopBroadcast();
@@ -89,7 +93,7 @@ contract DeployMarket is MarketScriptBase {
         for (uint256 i = 0; i < missing.length; i++) {
             console2.log("MARKET_ROLE_PENDING collection", missing[i], "- run phase 2 (GrantMarketRole.s.sol)");
         }
-        _writeJson(b, p, bookPath);
+        _writeJson(b, p, bookPath, json, fresh);
     }
 
     function _params(string memory json) internal view returns (MarketDeployLib.Params memory p) {
@@ -146,9 +150,41 @@ contract DeployMarket is MarketScriptBase {
     ///      touched, so the M1/M2 keys and any sibling keys another lane writes survive). Everything
     ///      else: a self-contained `deployments/<chainId>.market-dry-run.json` (`sourceBook` records which
     ///      book the rehearsal read) that phases 2 and 3 pick up in their own rehearsal.
-    function _writeJson(MarketDeployLib.Book memory b, MarketDeployLib.Params memory p, string memory bookPath)
-        internal
-    {
+    ///
+    ///      Besides the seven addresses, `.market` carries `deployBlock` — the block this run simulated
+    ///      at, i.e. a LOWER bound on the creation block (the broadcast lands at or after it), which is
+    ///      what a log consumer needs as its paging floor (both public Arc RPCs reject `eth_getLogs`
+    ///      ranges over 10,000 blocks; the app pages from `deployBlock` in ≤ 5,000-block windows) — and
+    ///      `bytecodeHashes` (keccak256 of each runtime bytecode, the same field the M1/M2 book carries
+    ///      for `deploy/BUILD.md` §4). On a resumed run (the market already had code when this run
+    ///      started) the earlier `.market.deployBlock` is kept when the book has one; otherwise the exact
+    ///      creation block must be taken from the earlier broadcast's receipts (the NOTE below says so).
+    function _writeJson(
+        MarketDeployLib.Book memory b,
+        MarketDeployLib.Params memory p,
+        string memory bookPath,
+        string memory bookJson,
+        bool fresh
+    ) internal {
+        uint256 deployBlock = block.number;
+        if (!fresh) {
+            if (vm.keyExistsJson(bookJson, ".market.deployBlock")) {
+                deployBlock = vm.parseJsonUint(bookJson, ".market.deployBlock");
+            } else {
+                console2.log(
+                    "NOTE resumed run: .market.deployBlock is this run's block; take the exact creation block from the first broadcast's receipts"
+                );
+            }
+        }
+        string memory hashes = "market.bytecodeHashes";
+        vm.serializeBytes32(hashes, "ArcNSMarket", keccak256(address(b.market).code));
+        vm.serializeBytes32(hashes, "NameLocks", keccak256(address(b.nameLocks).code));
+        vm.serializeBytes32(hashes, "RecordDelegate", keccak256(address(b.recordDelegate).code));
+        vm.serializeBytes32(hashes, "TextRecords", keccak256(address(b.textRecords).code));
+        vm.serializeBytes32(hashes, "AttestationRegistry", keccak256(address(b.attestations).code));
+        vm.serializeBytes32(hashes, "IntegratorRegistry", keccak256(address(b.integrators).code));
+        string memory hashesJson = vm.serializeBytes32(hashes, "Vouchers", keccak256(address(b.vouchers).code));
+
         string memory root = "market";
         vm.serializeAddress(root, "ArcNSMarket", address(b.market));
         vm.serializeAddress(root, "NameLocks", address(b.nameLocks));
@@ -156,7 +192,9 @@ contract DeployMarket is MarketScriptBase {
         vm.serializeAddress(root, "TextRecords", address(b.textRecords));
         vm.serializeAddress(root, "AttestationRegistry", address(b.attestations));
         vm.serializeAddress(root, "IntegratorRegistry", address(b.integrators));
-        string memory marketJson = vm.serializeAddress(root, "Vouchers", address(b.vouchers));
+        vm.serializeAddress(root, "Vouchers", address(b.vouchers));
+        vm.serializeUint(root, "deployBlock", deployBlock);
+        string memory marketJson = vm.serializeString(root, "bytecodeHashes", hashesJson);
 
         if (_isLiveWrite()) {
             vm.writeJson(marketJson, bookPath, ".market");

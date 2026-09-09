@@ -106,8 +106,8 @@ contract GrantMarketRole is MarketScriptBase {
 
     function _serialize(MarketGrantLib.Payload memory p, Ctx memory c) internal returns (string memory) {
         bytes memory sig = MarketGrantLib.safePreValidatedSignature(c.safeOwner);
-        string memory sched = _safeTx("safeSchedule", c.timelock, p.scheduleCalldata, sig);
-        string memory exec = _safeTx("safeExecute", c.timelock, p.executeCalldata, sig);
+        string memory sched = _serializeSafeTx("safeSchedule", c.timelock, p.scheduleCalldata, sig);
+        string memory exec = _serializeSafeTx("safeExecute", c.timelock, p.executeCalldata, sig);
         string memory state = _state(p, c);
 
         string memory root = "grant";
@@ -135,24 +135,6 @@ contract GrantMarketRole is MarketScriptBase {
         return vm.serializeString(root, "state", state);
     }
 
-    function _safeTx(string memory key, address to, bytes memory data, bytes memory sig)
-        internal
-        returns (string memory)
-    {
-        vm.serializeAddress(key, "to", to);
-        vm.serializeUint(key, "value", 0);
-        vm.serializeBytes(key, "data", data);
-        vm.serializeUint(key, "operation", MarketGrantLib.SAFE_OPERATION_CALL);
-        vm.serializeUint(key, "safeTxGas", 0);
-        vm.serializeUint(key, "baseGas", 0);
-        vm.serializeUint(key, "gasPrice", 0);
-        vm.serializeAddress(key, "gasToken", address(0));
-        vm.serializeAddress(key, "refundReceiver", address(0));
-        vm.serializeBytes(key, "signatures", sig);
-        return
-            vm.serializeBytes(key, "execTransactionCalldata", MarketGrantLib.safeExecTransactionCalldata(to, data, sig));
-    }
-
     /// @dev Live read-backs; `operation` is "no-rpc" and every flag `false` when the RPC has no code there.
     function _state(MarketGrantLib.Payload memory p, Ctx memory c) internal returns (string memory) {
         string memory key = "state";
@@ -178,12 +160,5 @@ contract GrantMarketRole is MarketScriptBase {
         bool granted = IAccessControl(c.handleRegistry).hasRole(ArcNSConstants.MARKET_ROLE, c.market);
         console2.log("GRANT_STATE operation", name, "marketRoleGranted", granted);
         return vm.serializeBool(key, "marketRoleGranted", granted);
-    }
-
-    function _stateName(TimelockController.OperationState st) internal pure returns (string memory) {
-        if (st == TimelockController.OperationState.Unset) return "Unset";
-        if (st == TimelockController.OperationState.Waiting) return "Waiting";
-        if (st == TimelockController.OperationState.Ready) return "Ready";
-        return "Done";
     }
 }

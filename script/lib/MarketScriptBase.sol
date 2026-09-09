@@ -3,6 +3,9 @@ pragma solidity 0.8.30;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {VmSafe} from "forge-std/Vm.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+
+import {MarketGrantLib} from "./MarketGrantLib.sol";
 
 /// @title MarketScriptBase — address-book plumbing shared by the three WP-7632 market scripts
 /// @notice Which JSON file each phase reads and writes (`docs/runbooks/market-deploy.md` §1):
@@ -54,6 +57,33 @@ abstract contract MarketScriptBase is Script {
             )
         );
         return (vm.readFile(path), path);
+    }
+
+    /// @dev Serialises one Safe `execTransaction` (plain call, no gas refund fields, the given signature
+    ///      bytes) under `key`, plus the fully encoded `execTransactionCalldata` — shared by phases 2 and 4.
+    function _serializeSafeTx(string memory key, address to, bytes memory data, bytes memory sig)
+        internal
+        returns (string memory)
+    {
+        vm.serializeAddress(key, "to", to);
+        vm.serializeUint(key, "value", 0);
+        vm.serializeBytes(key, "data", data);
+        vm.serializeUint(key, "operation", MarketGrantLib.SAFE_OPERATION_CALL);
+        vm.serializeUint(key, "safeTxGas", 0);
+        vm.serializeUint(key, "baseGas", 0);
+        vm.serializeUint(key, "gasPrice", 0);
+        vm.serializeAddress(key, "gasToken", address(0));
+        vm.serializeAddress(key, "refundReceiver", address(0));
+        vm.serializeBytes(key, "signatures", sig);
+        return
+            vm.serializeBytes(key, "execTransactionCalldata", MarketGrantLib.safeExecTransactionCalldata(to, data, sig));
+    }
+
+    function _stateName(TimelockController.OperationState st) internal pure returns (string memory) {
+        if (st == TimelockController.OperationState.Unset) return "Unset";
+        if (st == TimelockController.OperationState.Waiting) return "Waiting";
+        if (st == TimelockController.OperationState.Ready) return "Ready";
+        return "Done";
     }
 
     function _requireAddr(address a, string memory what) internal pure {
