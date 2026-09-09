@@ -16,6 +16,7 @@ import {ITldDirectory} from "../interfaces/ITldDirectory.sol";
 import {ITldRegistrarController} from "../interfaces/ITldRegistrarController.sol";
 import {ArcNSConstants} from "../lib/ArcNSConstants.sol";
 import {HandleNormalize} from "../lib/HandleNormalize.sol";
+import {LaunchAllowlist} from "../lib/LaunchAllowlist.sol";
 import {TldRegistrar} from "./TldRegistrar.sol";
 
 /// @title TldRegistrarController — C5, one instance per TLD; fork of ENS `ETHRegistrarController` v1.7.0
@@ -28,7 +29,10 @@ import {TldRegistrar} from "./TldRegistrar.sol";
 ///         (`expires == type(uint64).max`, Q3), pull ledger for overpayment (SR-11/31), fee pushed
 ///         to the Treasury Safe, reserved genesis (`GENESIS_ROLE`, renounced in `sealGenesis`,
 ///         SR-16), the Arc coin-type record set at registration (WP-145), the human label stored for
-///         metadata (WP-143) and the resolver node tag (onchain-design §3.5).
+///         metadata (WP-143), the resolver node tag (onchain-design §3.5) and the optional launch
+///         allowlist (WP-144, `docs/architecture/launch-allowlist.md`: while `allowlistActive()` only
+///         `registerWithProof` with a Merkle proof for `registration.owner` mints; set by the
+///         timelock, closes by itself at `allowlistSunset`).
 ///
 ///         Two instances (`.arc`, `.circle`) are byte-identical bytecode with different `Init`.
 contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTransient, ITldRegistrarController {
@@ -58,6 +62,8 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
     bytes32 public constant PAUSER_ROLE = ArcNSConstants.PAUSER_ROLE;
     /// @inheritdoc ITldRegistrarController
     uint256 public constant MIN_COMMITMENT_AGE_FLOOR = 30 seconds;
+    /// @inheritdoc ITldRegistrarController
+    uint256 public constant MAX_ALLOWLIST_WINDOW = 90 days;
     /// @dev Upper bound for `maxCommitmentAge` (SR-10).
     uint256 private constant MAX_COMMITMENT_AGE_CAP = 24 hours;
     /// @dev Q3 permanence: every name expires at `type(uint64).max` (BENS clamps ≥ 2^63 to null).
@@ -97,6 +103,10 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
     mapping(bytes32 labelhash => uint256 priceWei) public paidWei;
     /// @notice Human label per labelhash (WP-143); read by `TldMetadata` through `labelOf`.
     mapping(bytes32 labelhash => string label) public labels;
+    /// @inheritdoc ITldRegistrarController
+    bytes32 public allowlistRoot;
+    /// @inheritdoc ITldRegistrarController
+    uint64 public allowlistSunset;
 
     constructor(Init memory init) {
         if (init.minCommitmentAge < MIN_COMMITMENT_AGE_FLOOR) {
@@ -165,6 +175,17 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
     }
 
     /// @inheritdoc ITldRegistrarController
+    /// @dev `<` against `allowlistSunset`: the sunset second itself is open.
+    function allowlistActive() public view returns (bool) {
+        return allowlistRoot != bytes32(0) && block.timestamp < allowlistSunset;
+    }
+
+    /// @inheritdoc ITldRegistrarController
+    function isAllowlisted(address owner, bytes32[] calldata proof) public view returns (bool) {
+        return LaunchAllowlist.isAllowed(allowlistRoot, proof, owner);
+    }
+
+    /// @inheritdoc ITldRegistrarController
     /// @dev SR-10 shape (`tag, label, owner, secret, chainid, this`) plus the registration payload, so
     ///      a reveal with any field changed does not match. Upstream checks are kept verbatim.
     function makeCommitment(Registration calldata registration) public view returns (bytes32) {
@@ -198,12 +219,33 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
     }
 
     /// @inheritdoc ITldRegistrarController
+    /// @dev The allowlist gate (WP-144) is evaluated before the genesis/directory gate so a
+    ///      launch-window client sees `AllowlistRequired` first.
     function register(Registration calldata registration, uint256 maxPrice)
         external
         payable
         nonReentrant
         whenNotPaused
     {
+        if (allowlistActive()) revert AllowlistRequired();
+        _register(registration, maxPrice);
+    }
+
+    /// @inheritdoc ITldRegistrarController
+    /// @dev The proof is verified for `registration.owner` (never `msg.sender`, see `LaunchAllowlist`)
+    ///      and only while the window is open; outside it this is byte-for-byte `register`.
+    function registerWithProof(Registration calldata registration, uint256 maxPrice, bytes32[] calldata proof)
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+    {
+        if (allowlistActive() && !isAllowlisted(registration.owner, proof)) revert NotAllowlisted(registration.owner);
+        _register(registration, maxPrice);
+    }
+
+    /// @dev Shared by `register` and `registerWithProof`; the caller has already cleared the allowlist gate.
+    function _register(Registration calldata registration, uint256 maxPrice) private {
         if (!genesisSealed || !directory.registrationsOpen(tldNode)) revert RegistrationsClosed();
         if (!HandleNormalize.isCanonical(registration.label)) revert NotCanonical(registration.label);
 
@@ -279,6 +321,25 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
         genesisRoot = merkleRoot;
         emit GenesisSealed(tldNode, merkleRoot, reservedCount);
         _revokeRole(GENESIS_ROLE, msg.sender);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Launch allowlist (WP-144; DEFAULT_ADMIN_ROLE = timelock)
+    // ---------------------------------------------------------------------------------------------
+
+    /// @inheritdoc ITldRegistrarController
+    /// @dev A non-zero root needs `now < sunset <= now + MAX_ALLOWLIST_WINDOW`; clearing needs
+    ///      `sunset == 0`. Re-setting overwrites both fields atomically; every change goes through the
+    ///      timelock delay (SR-61). Per instance: `.arc` and `.circle` can run different windows.
+    function setAllowlist(bytes32 root, uint64 sunset) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (root == bytes32(0)) {
+            if (sunset != 0) revert AllowlistSunsetInvalid(sunset);
+        } else if (sunset <= block.timestamp || sunset > block.timestamp + MAX_ALLOWLIST_WINDOW) {
+            revert AllowlistSunsetInvalid(sunset);
+        }
+        allowlistRoot = root;
+        allowlistSunset = sunset;
+        emit AllowlistSet(root, sunset);
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -12,6 +12,9 @@ interface IHandleController {
     event TreasuryFee(uint256 indexed tokenId, uint256 amount);
     event Credited(address indexed to, uint256 amount);
     event Withdrawn(address indexed to, uint256 amount);
+    /// @notice WP-144: launch allowlist (re)configured. `root == 0` ⇒ no allowlist; otherwise proofs
+    ///         are required for every `owner` until `sunset` (exclusive).
+    event AllowlistSet(bytes32 indexed root, uint64 sunset);
 
     error CommitmentNotFound(bytes32 commitment);
     error CommitmentTooNew(bytes32 commitment, uint256 minimumCommitmentTimestamp, uint256 currentTimestamp);
@@ -30,6 +33,13 @@ interface IHandleController {
     error ValueNotAccepted();
     error MinCommitmentAgeBelowFloor(uint256 provided, uint256 floor);
     error MaxCommitmentAgeInvalid(uint256 provided);
+    /// @notice WP-144: the allowlist window is open and `register` (no proof) was called — use `registerWithProof`.
+    error AllowlistRequired();
+    /// @notice WP-144: the proof does not place `owner` in the current allowlist root.
+    error NotAllowlisted(address owner);
+    /// @notice WP-144: `sunset` must be strictly in the future and at most `MAX_ALLOWLIST_WINDOW` ahead
+    ///         when a root is set, and exactly 0 when the root is cleared.
+    error AllowlistSunsetInvalid(uint64 sunset);
 
     function namespaceId() external view returns (bytes32); // HANDLE_ROOT
     function treasury() external view returns (address);
@@ -42,6 +52,18 @@ interface IHandleController {
     function commitments(bytes32 commitment) external view returns (uint256);
     function withdrawable(address who) external view returns (uint256);
 
+    // ---- launch allowlist (WP-144; admin = timelock, SR-62)
+    /// @notice Longest window a single `setAllowlist` may open (90 days); extend by calling again.
+    function MAX_ALLOWLIST_WINDOW() external view returns (uint256);
+    function allowlistRoot() external view returns (bytes32);
+    function allowlistSunset() external view returns (uint64);
+    /// @notice True while `allowlistRoot != 0 && block.timestamp < allowlistSunset`.
+    function allowlistActive() external view returns (bool);
+    /// @notice Proof check only — ignores whether the allowlist is active.
+    function isAllowlisted(address owner, bytes32[] calldata proof) external view returns (bool);
+    /// @notice DEFAULT_ADMIN_ROLE (timelock). `root = 0, sunset = 0` clears the allowlist.
+    function setAllowlist(bytes32 root, uint64 sunset) external;
+
     function valid(string calldata name) external pure returns (bool);
     function available(string calldata name) external view returns (bool);
     function quote(string calldata name) external view returns (uint256 priceWei);
@@ -51,9 +73,20 @@ interface IHandleController {
         view
         returns (bytes32);
     function commit(bytes32 commitment) external;
+    /// @notice Reverts `AllowlistRequired` while the allowlist window is open.
     function register(string calldata name, address owner, bytes32 secret, uint8 handleType, uint256 maxPrice)
         external
         payable;
+    /// @notice `register` plus a Merkle proof that `owner` is on the launch allowlist; `proof` is only
+    ///         checked while the allowlist is active, so a client built for launch keeps working after sunset.
+    function registerWithProof(
+        string calldata name,
+        address owner,
+        bytes32 secret,
+        uint8 handleType,
+        uint256 maxPrice,
+        bytes32[] calldata proof
+    ) external payable;
     function withdraw() external;
 
     function registerReservedBatch(string[] calldata names, uint8[] calldata handleTypes) external;

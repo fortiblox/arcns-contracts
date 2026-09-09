@@ -10,15 +10,19 @@ import {IHandleRegistry} from "../interfaces/IHandleRegistry.sol";
 import {IArcNSPriceOracle} from "../interfaces/IArcNSPriceOracle.sol";
 import {ArcNSConstants} from "../lib/ArcNSConstants.sol";
 import {HandleNormalize} from "../lib/HandleNormalize.sol";
+import {LaunchAllowlist} from "../lib/LaunchAllowlist.sol";
 
 /// @title HandleController — C2, commit-reveal registration for the handle namespace (onchain-design §2, §7)
 /// @notice Sole REGISTRAR_ROLE on `HandleRegistry`. Commit-reveal per SR-10 (ENS ETHRegistrarController
 ///         v1.7.0 age semantics), `maxPrice` guard (pricing.md §4), pull ledger for overpayment
 ///         (SR-11/SR-31), treasury push (§6), reserved genesis that never touches `totalSold`
-///         (CEO decision 6a), and `sealGenesis` that revokes GENESIS_ROLE in the same tx (SR-16).
+///         (CEO decision 6a), `sealGenesis` that revokes GENESIS_ROLE in the same tx (SR-16), and the
+///         optional launch allowlist (WP-144, `docs/architecture/launch-allowlist.md`): while
+///         `allowlistActive()` only `registerWithProof` with a Merkle proof for `owner` mints; the
+///         window is set by the timelock and closes by itself at `allowlistSunset`.
 ///
-/// @dev Roles: DEFAULT_ADMIN_ROLE = timelock; GENESIS_ROLE = deployer EOA until sealed;
-///      PAUSER_ROLE = Admin Safe (pause blocks only `register`; unpause is admin-only, SR-62).
+/// @dev Roles: DEFAULT_ADMIN_ROLE = timelock (also `setAllowlist`); GENESIS_ROLE = deployer EOA until
+///      sealed; PAUSER_ROLE = Admin Safe (pause blocks only `register`; unpause is admin-only, SR-62).
 ///      Immutable by design (SR-60): a v2 controller is a new deployment re-pointed via the
 ///      registry's REGISTRAR_ROLE.
 contract HandleController is IHandleController, AccessControl, Pausable, ReentrancyGuardTransient {
@@ -48,6 +52,8 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
     uint256 public constant MIN_COMMITMENT_AGE_FLOOR = 30 seconds;
     /// @notice `maxCommitmentAge` may not exceed this (SR-10: 24 h).
     uint256 public constant MAX_COMMITMENT_AGE_CEILING = 24 hours;
+    /// @inheritdoc IHandleController
+    uint256 public constant MAX_ALLOWLIST_WINDOW = 90 days;
 
     IHandleRegistry public immutable registry;
     IArcNSPriceOracle public immutable oracle;
@@ -72,6 +78,10 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
     mapping(bytes32 commitment => uint256 timestamp) public commitments;
     /// @inheritdoc IHandleController
     mapping(address who => uint256 amount) public withdrawable;
+    /// @inheritdoc IHandleController
+    bytes32 public allowlistRoot;
+    /// @inheritdoc IHandleController
+    uint64 public allowlistSunset;
 
     // ---------------------------------------------------------------------------------------------
     // Construction
@@ -145,6 +155,19 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
         );
     }
 
+    /// @inheritdoc IHandleController
+    /// @dev `<` against `allowlistSunset`: the sunset second itself is open (mirrors `claim`/`refund`
+    ///      window discipline elsewhere — the two states never overlap). 1-second timestamp
+    ///      granularity is fine for a days-long window (threat-model §0).
+    function allowlistActive() public view returns (bool) {
+        return allowlistRoot != bytes32(0) && block.timestamp < allowlistSunset;
+    }
+
+    /// @inheritdoc IHandleController
+    function isAllowlisted(address owner, bytes32[] calldata proof) public view returns (bool) {
+        return LaunchAllowlist.isAllowed(allowlistRoot, proof, owner);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Commit / reveal
     // ---------------------------------------------------------------------------------------------
@@ -159,14 +182,39 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
     }
 
     /// @inheritdoc IHandleController
-    /// @dev Age checks are verbatim ENS ETHRegistrarController v1.7.0 (`>` / `<=` against
-    ///      `block.timestamp`). Pausable (new registrations only, SR-62). `nonReentrant` is
-    ///      belt-and-braces: the only external value call is the treasury push.
+    /// @dev Pausable (new registrations only, SR-62). `nonReentrant` is belt-and-braces: the only
+    ///      external value call is the treasury push. The allowlist gate (WP-144) is evaluated before
+    ///      the genesis gate so a launch-window client sees `AllowlistRequired` first.
     function register(string calldata name, address owner, bytes32 secret, uint8 handleType, uint256 maxPrice)
         external
         payable
         nonReentrant
         whenNotPaused
+    {
+        if (allowlistActive()) revert AllowlistRequired();
+        _register(name, owner, secret, handleType, maxPrice);
+    }
+
+    /// @inheritdoc IHandleController
+    /// @dev The proof is verified for `owner` (never `msg.sender`, see `LaunchAllowlist`) and only
+    ///      while the window is open; outside it this is byte-for-byte `register`.
+    function registerWithProof(
+        string calldata name,
+        address owner,
+        bytes32 secret,
+        uint8 handleType,
+        uint256 maxPrice,
+        bytes32[] calldata proof
+    ) external payable nonReentrant whenNotPaused {
+        if (allowlistActive() && !isAllowlisted(owner, proof)) revert NotAllowlisted(owner);
+        _register(name, owner, secret, handleType, maxPrice);
+    }
+
+    /// @dev Age checks are verbatim ENS ETHRegistrarController v1.7.0 (`>` / `<=` against
+    ///      `block.timestamp`). Shared by `register` and `registerWithProof`; the caller has already
+    ///      cleared the allowlist gate.
+    function _register(string calldata name, address owner, bytes32 secret, uint8 handleType, uint256 maxPrice)
+        internal
     {
         if (!genesisSealed) revert RegistrationsClosed();
         if (!HandleNormalize.isCanonical(name)) revert NotCanonical(name);
@@ -258,6 +306,26 @@ contract HandleController is IHandleController, AccessControl, Pausable, Reentra
         genesisRoot = merkleRoot;
         emit GenesisSealed(ArcNSConstants.HANDLE_ROOT, merkleRoot, reservedCount);
         _revokeRole(GENESIS_ROLE, msg.sender);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Launch allowlist (WP-144; DEFAULT_ADMIN_ROLE = timelock)
+    // ---------------------------------------------------------------------------------------------
+
+    /// @inheritdoc IHandleController
+    /// @dev A non-zero root needs `now < sunset <= now + MAX_ALLOWLIST_WINDOW`; clearing needs
+    ///      `sunset == 0` so a "clear" can never be confused with a window. Re-setting overwrites both
+    ///      fields atomically — there is no separate "extend"; the timelock delay (SR-61) applies to
+    ///      every change, so the window can only be extended/rotated with public notice.
+    function setAllowlist(bytes32 root, uint64 sunset) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (root == bytes32(0)) {
+            if (sunset != 0) revert AllowlistSunsetInvalid(sunset);
+        } else if (sunset <= block.timestamp || sunset > block.timestamp + MAX_ALLOWLIST_WINDOW) {
+            revert AllowlistSunsetInvalid(sunset);
+        }
+        allowlistRoot = root;
+        allowlistSunset = sunset;
+        emit AllowlistSet(root, sunset);
     }
 
     // ---------------------------------------------------------------------------------------------
