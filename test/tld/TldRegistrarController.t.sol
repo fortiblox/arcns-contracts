@@ -1150,7 +1150,11 @@ contract TldRegistrarControllerTest is TldStackFixture {
     }
 
     /// @dev Two-leaf tree over `alice` and `bob`; returns the root and each one's single-hash proof.
-    function _twoLeafTree() internal view returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) {
+    function _twoLeafTree()
+        internal
+        view
+        returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob)
+    {
         bytes32 leafAlice = keccak256(bytes.concat(keccak256(abi.encode(alice))));
         bytes32 leafBob = keccak256(bytes.concat(keccak256(abi.encode(bob))));
         root = _pairHash(leafAlice, leafBob);
@@ -1221,8 +1225,7 @@ contract TldRegistrarControllerTest is TldStackFixture {
         vm.prank(admin);
         arc.controller.setAllowlist(root, uint64(block.timestamp + 1 days));
 
-        ITldRegistrarController.Registration memory r =
-            _registration("alice", alice, keccak256("s"), address(0), false);
+        ITldRegistrarController.Registration memory r = _registration("alice", alice, keccak256("s"), address(0), false);
         _commitAndWait(arc, r, alice);
         uint256 price = arc.controller.quote("alice");
         vm.deal(alice, price);
@@ -1293,7 +1296,8 @@ contract TldRegistrarControllerTest is TldStackFixture {
         assertFalse(arc.controller.allowlistActive());
 
         // stranger is not on the list, but the window is closed: plain register works...
-        ITldRegistrarController.Registration memory r = _registration("dao", stranger, keccak256("s"), address(0), false);
+        ITldRegistrarController.Registration memory r =
+            _registration("dao", stranger, keccak256("s"), address(0), false);
         _commitAndWait(arc, r, stranger);
         uint256 price = arc.controller.quote("dao");
         vm.deal(stranger, price);

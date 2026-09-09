@@ -612,7 +612,11 @@ contract HandleControllerTest is Test {
     }
 
     /// @dev Two-leaf tree over `alice` and `bob`; returns the root and each one's single-hash proof.
-    function _twoLeafTree() internal view returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) {
+    function _twoLeafTree()
+        internal
+        view
+        returns (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob)
+    {
         bytes32 leafAlice = keccak256(bytes.concat(keccak256(abi.encode(alice))));
         bytes32 leafBob = keccak256(bytes.concat(keccak256(abi.encode(bob))));
         root = _pairHash(leafAlice, leafBob);
@@ -783,9 +787,9 @@ contract HandleControllerTest is Test {
         vm.stopPrank();
     }
 
-    function testFuzz_registerWithProof_correct_proof_always_succeeds_wrong_owner_always_reverts(
-        bool useAliceAsOwner
-    ) public {
+    function testFuzz_registerWithProof_correct_proof_always_succeeds_wrong_owner_always_reverts(bool useAliceAsOwner)
+        public
+    {
         _seal();
         (bytes32 root, bytes32[] memory proofAlice, bytes32[] memory proofBob) = _twoLeafTree();
         vm.prank(admin);

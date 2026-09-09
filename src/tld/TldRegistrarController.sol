@@ -240,7 +240,9 @@ contract TldRegistrarController is AccessControl, Pausable, ReentrancyGuardTrans
         nonReentrant
         whenNotPaused
     {
-        if (allowlistActive() && !isAllowlisted(registration.owner, proof)) revert NotAllowlisted(registration.owner);
+        if (allowlistActive() && !isAllowlisted(registration.owner, proof)) {
+            revert NotAllowlisted(registration.owner);
+        }
         _register(registration, maxPrice);
     }
 
