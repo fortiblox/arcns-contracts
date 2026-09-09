@@ -29,6 +29,8 @@ contract MarketHandler is Test {
     bool public soldOrSettledWhileLocked;
     mapping(bytes32 key => uint40) public maxEndsAtSeen;
     bool public endsAtDecreased;
+    bool public batchBuyUnexpectedRevert;
+    bytes public batchBuyRevertReason;
 
     constructor(ArcNSMarket market_, MockERC721 collection_, MockNameLocks nameLocks_, address treasury_) {
         market = market_;
@@ -248,7 +250,19 @@ contract MarketHandler is Test {
             for (uint256 i = 0; i < 3; i++) {
                 if (bought[i] && wasLocked[i]) soldOrSettledWhileLocked = true;
             }
-        } catch {}
+        } catch (bytes memory reason) {
+            // `batchBuy` is documented to NEVER revert over a per-item problem
+            // (docs/architecture/batch-buy.md §2) — the only two INTENDED revert reasons are
+            // `EmptyBatch` (items.length == 0) and `BatchTooLarge` (items.length > MAX_BATCH_BUY_SIZE),
+            // and `items` here is always hardcoded to exactly 3 entries, well under the 40-item cap, so
+            // this call is structurally incapable of hitting either one. Before the #7611 fix, a plain
+            // `catch {}` here would have silently swallowed the exact
+            // whole-batch-reverts-on-one-undeliverable-item regression this campaign exists to catch —
+            // 16,384 calls across the campaign and it would never have flagged it. Record and fail
+            // loudly instead of eating any revert.
+            batchBuyUnexpectedRevert = true;
+            batchBuyRevertReason = reason;
+        }
     }
 }
 
@@ -357,6 +371,20 @@ contract MarketInvariantTest is StdInvariant, Test {
     /// @dev INV-6: `endsAt` never decreases across any sequence of bids on the same auction.
     function invariant_INV6_auction_endsAt_never_decreases() public view {
         assertFalse(handler.endsAtDecreased(), "an auction's endsAt decreased across bids");
+    }
+
+    /// @dev #7611 (peer review 2026-09-09): the handler always calls `batchBuy` with exactly 3 items —
+    ///      always under `MAX_BATCH_BUY_SIZE` and never empty — so `EmptyBatch`/`BatchTooLarge` can
+    ///      never fire here, and per docs/architecture/batch-buy.md §2 no other condition should ever
+    ///      revert the call. A `catch {}` in the handler around this call would silently hide a
+    ///      whole-batch revert (exactly the bug fixed in `_tryBuyOne` — an un-caught `transferFrom`
+    ///      reverting the entire batch over one seller revoking approval); this asserts that in
+    ///      16,384+ calls across the campaign, `batchBuy` never once revert unexpectedly.
+    function invariant_batchBuy_never_reverts_unexpectedly() public view {
+        assertFalse(
+            handler.batchBuyUnexpectedRevert(),
+            "batchBuy reverted the whole batch instead of skipping the offending item(s)"
+        );
     }
 
     /// @dev No path pays out more than was escrowed: every actor's cumulative `withdrawable` credit

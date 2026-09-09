@@ -169,9 +169,10 @@ interface IArcNSMarket {
     function cancelListing(address collection, uint256 tokenId) external; // seller or current owner
     function buy(address collection, uint256 tokenId, uint256 expectedPrice) external payable;
     /// @notice #7611: attempts every item; a listing that is gone, stale, mismatched-price, expired,
-    ///         locked, or unaffordable from the remaining `msg.value` is SKIPPED, not reverted — see
-    ///         `bought[i]` for the per-item outcome. Unspent `msg.value` (everything not charged to a
-    ///         successful item) is credited to the caller's pull ledger (SR-31), never reverted or
+    ///         locked, unaffordable from the remaining `msg.value`, or whose transfer itself fails
+    ///         (e.g. the seller revoked the market's approval after listing) is SKIPPED, not reverted
+    ///         — see `bought[i]` for the per-item outcome. Unspent `msg.value` (everything not charged
+    ///         to a successful item) is credited to the caller's pull ledger (SR-31), never reverted or
     ///         stranded, even if every item in the batch failed.
     function batchBuy(BatchBuyItem[] calldata items)
         external

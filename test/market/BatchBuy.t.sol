@@ -187,6 +187,51 @@ contract ArcNSMarketBatchBuyTest is MarketFixture {
         assertEq(market.withdrawable(buyer), 1e18);
     }
 
+    /// @dev Reviewer-found bug (2026-09-09): revoking `setApprovalForAll` on a listed item's
+    ///      collection is a completely normal, always-available seller action that `EpochGuard.stillValid`
+    ///      cannot see (it only tracks `ownerOf`/epoch, never ERC-721 operator-approval state), so the
+    ///      listing sails through every other skip check and only the `transferFrom` call itself
+    ///      discovers the problem. Before the fix, `_tryBuyOne`'s `transferFrom` was unwrapped, so this
+    ///      reverted the ENTIRE `batchBuy` call — including item 0, which had nothing wrong with it —
+    ///      directly contradicting the "never reverts the cart, only skips" guarantee in
+    ///      `docs/architecture/batch-buy.md` and `IArcNSMarket.batchBuy`'s NatSpec.
+    function test_batchBuy_seller_revokes_approval_after_listing_skips_only_that_item() public {
+        _list(address(registry), aliceHandleId, seller, 1e18, expires);
+        _list(address(tld), TLD_TOKEN_ID, seller, 2e18, expires);
+
+        // Seller revokes the market's operator approval on the TLD collection only, after listing.
+        // Alice's item (a different collection, `registry`) is completely unaffected.
+        vm.prank(seller);
+        tld.setApprovalForAll(address(market), false);
+
+        IArcNSMarket.BatchBuyItem[] memory items = new IArcNSMarket.BatchBuyItem[](2);
+        items[0] = _item(address(registry), aliceHandleId, 1e18);
+        items[1] = _item(address(tld), TLD_TOKEN_ID, 2e18);
+
+        vm.expectEmit(true, true, true, true, address(market));
+        emit IArcNSMarket.BatchBuyExecuted(buyer, 2, 1, 1e18);
+        vm.prank(buyer);
+        (bool[] memory bought, uint256 totalCharged) = market.batchBuy{value: 3e18}(items);
+
+        assertTrue(bought[0], "alice's item is unaffected by tld's revoked approval and still buys");
+        assertFalse(bought[1], "tld item's transferFrom reverts (no approval) -> skipped, not a whole-batch revert");
+        assertEq(totalCharged, 1e18);
+        assertEq(registry.ownerOf(aliceHandleId), buyer);
+        assertEq(tld.ownerOf(TLD_TOKEN_ID), seller, "tld token never moved: transfer failed, nothing delivered");
+        // the 2e18 earmarked for the failed tld item comes back to the buyer, not stranded.
+        assertEq(market.withdrawable(buyer), 2e18);
+        // no fee/proceeds credited for the failed item: accounting only happens once the transfer
+        // itself is confirmed to have succeeded (mirrors `settleAuction`'s try/catch ordering).
+        uint256 feeBps = FEE_BPS;
+        uint256 aliceFee = (1e18 * feeBps) / 10_000;
+        assertEq(market.withdrawable(seller), 1e18 - aliceFee, "only alice's proceeds credited");
+        assertEq(market.withdrawable(treasury), aliceFee, "only alice's fee credited");
+        // the tld listing is still consumed (deleted), like `settleAuction` permanently voids an
+        // auction it cannot deliver, rather than leaving a listing dangling on a seller who has
+        // already signalled (by revoking approval) that they don't intend to honor it right now.
+        assertEq(market.getListing(address(tld), TLD_TOKEN_ID).seller, address(0));
+    }
+
     // ---- duplicates, edge sizes --------------------------------------------------------------------
 
     function test_batchBuy_duplicate_item_in_same_batch_only_buys_once() public {

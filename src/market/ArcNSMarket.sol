@@ -344,7 +344,15 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
         // Whatever was never charged to a successful item — including the ENTIRE value if every item
         // failed — is credited to the buyer's own pull ledger (SR-31): a batch purchase never reverts
         // and never strands funds, matching `buy`'s own excess-credit handling per item.
+        //
+        // slither: `reentrancy-no-eth` flags this write as coming after the loop's external calls
+        // (each `_tryBuyOne`'s `transferFrom`). `remaining` is only known once every item has been
+        // attempted, so this credit cannot be moved before the loop without a full two-pass rewrite
+        // (validate every item, THEN transfer) — a materially riskier restructuring for a call path
+        // `nonReentrant` (transient) already forecloses reentrancy on for the whole batch. See
+        // SECURITY-NOTES.md's `reentrancy-no-eth` (M3, #7611) entry.
         if (remaining > 0) {
+            // slither-disable-next-line reentrancy-no-eth
             withdrawable[msg.sender] += remaining;
             emit Credited(msg.sender, remaining);
         }
@@ -357,6 +365,20 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
     ///      batch-buy section). `valueAvailable` is the caller's REMAINING unspent `msg.value` at this
     ///      point in the batch, not the full `msg.value` — each item can only spend what earlier items
     ///      in the same batch left behind.
+    /// @dev #7611 fix (2026-09-09): the `transferFrom` is wrapped in `try/catch`, mirroring
+    ///      `settleAuction`'s exact pattern, because every OTHER skip condition above (price/expiry/lock/
+    ///      `EpochGuard.stillValid`) is blind to ERC-721 operator-approval state — a seller can revoke
+    ///      `setApprovalForAll` on the market at any time after listing (a completely normal, always-
+    ///      available action) without failing any of those checks, so only the transfer attempt itself
+    ///      can discover it. Fee/proceeds accounting is only applied INSIDE the success branch, after the
+    ///      transfer is confirmed, so a failed transfer never charges the buyer or credits the seller/
+    ///      treasury for an item that was never actually delivered; the listing stays deleted either way
+    ///      (mirrors `settleAuction` permanently voiding an undeliverable auction rather than leaving a
+    ///      listing dangling for a seller who has already signalled, by revoking approval, that they
+    ///      don't intend to honor it right now). On failure this returns `(false, 0)` exactly like every
+    ///      other skip condition: `batchBuy` never reverts the whole cart over it, and the buyer's
+    ///      earmarked value for this item flows back to them via `batchBuy`'s own unspent-`remaining`
+    ///      refund — no separate refund path needed here.
     function _tryBuyOne(address collection, uint256 tokenId, uint256 expectedPrice, uint256 valueAvailable)
         private
         returns (bool ok, uint256 price)
@@ -373,23 +395,29 @@ contract ArcNSMarket is IArcNSMarket, AccessControl, Pausable, ReentrancyGuardTr
         }
         if (valueAvailable < l.price) return (false, 0);
 
-        uint256 fee = (l.price * l.feeBps) / 10_000;
-        uint256 net = l.price - fee;
-        price = l.price;
-
         delete _listings[collection][tokenId];
-        if (fee > 0) {
-            withdrawable[treasury] += fee;
-            emit Credited(treasury, fee);
-        }
-        withdrawable[l.seller] += net;
-        emit Credited(l.seller, net);
-        emit Sold(collection, tokenId, l.seller, msg.sender, l.price, fee);
+
         // Same guard as `buy`: `l.seller` comes from a validated listing, re-verified against
         // ownerOf/epoch immediately above, never arbitrary caller input.
         // slither-disable-next-line arbitrary-send-erc20
-        IERC721(collection).transferFrom(l.seller, msg.sender, tokenId);
-        return (true, price);
+        try IERC721(collection).transferFrom(l.seller, msg.sender, tokenId) {
+            uint256 fee = (l.price * l.feeBps) / 10_000;
+            uint256 net = l.price - fee;
+            price = l.price;
+            if (fee > 0) {
+                withdrawable[treasury] += fee;
+                emit Credited(treasury, fee);
+            }
+            withdrawable[l.seller] += net;
+            emit Credited(l.seller, net);
+            emit Sold(collection, tokenId, l.seller, msg.sender, l.price, fee);
+            return (true, price);
+        } catch {
+            // Transfer failed after passing every other check (e.g. approval revoked post-listing):
+            // skip this item exactly like any other unbuyable condition above — no charge, no credit,
+            // the earmarked value comes back to the buyer via `batchBuy`'s `remaining` refund.
+            return (false, 0);
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
