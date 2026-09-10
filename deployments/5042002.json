@@ -59,5 +59,24 @@
       "status": "Active"
     }
   },
-  "treasury": "0x3dDF29e9757FaD73F1174391926cb3794AcF3A17"
+  "treasury": "0x3dDF29e9757FaD73F1174391926cb3794AcF3A17",
+  "market": {
+    "ArcNSMarket": "0x231457ce6EaD9311da73cC6Ed0AdC9fBb909F67E",
+    "AttestationRegistry": "0x529B9b88E06F92009f354f19dB81bf88E1591341",
+    "IntegratorRegistry": "0x11Ca7573fbF86B1B48d1A44110EcaF3bab77736D",
+    "NameLocks": "0x84990f68e2b88e25E17b658DC247aC4950b23986",
+    "RecordDelegate": "0x4E5943BBAd8347898d5cBEe3a7a3aCa460e7026E",
+    "TextRecords": "0x241C2529eC3dee8Bc03DFF565ec02F58bE525172",
+    "Vouchers": "0x7198B18FFF6AF29E375adD6Fd269F14BB1f02156",
+    "bytecodeHashes": {
+      "ArcNSMarket": "0x72ef0ee695cf7f292b0d703fe61291c2db0704fd0a31e7b98c00eb42302802ae",
+      "AttestationRegistry": "0x7adff72ed18690c1bd02530c6da1d5aac40319f126bb2bd9f83802a00045697c",
+      "IntegratorRegistry": "0x1fb855d762fa5cf69864f2722b0e2292c98d4b6aad1a506ffdd613a42b44132b",
+      "NameLocks": "0x642c6778b54366fe905380c49cbfd8fee6f496419aa9118af45fcf790823d234",
+      "RecordDelegate": "0xff4b48db78059fb0fcff750aabddd8301f34405a8df24889e9f243519f5cb3b1",
+      "TextRecords": "0x51130103388986a880976c662ed2e856e99e68580769805e8777a2d98caac47a",
+      "Vouchers": "0x5a189cf9fce93899851159d7894999d3d7afea60956604786b68b2510bcac767"
+    },
+    "deployBlock": 61316703
+  }
 }

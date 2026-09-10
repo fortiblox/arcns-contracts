@@ -1,0 +1,24 @@
+{
+  "AdminSafe": "0x632e02ADaA92dE3303506eAfc3937348C88dcd83",
+  "AttestationRegistry": "0x529B9b88E06F92009f354f19dB81bf88E1591341",
+  "IntegratorRegistry": "0x11Ca7573fbF86B1B48d1A44110EcaF3bab77736D",
+  "TimelockController": "0xF0027dfe0D0a1d484c7186F8DA72165C6F1D0b24",
+  "chainId": 5042002,
+  "config": "script/config/market-init.json",
+  "marketBook": "deployments/5042002.json",
+  "safeOwner": "0xd91d1F6abB7243910B38Fe86CdCd0754a00cB152",
+  "sourceBook": "deployments/5042002.json",
+  "state": {
+    "minDelay": 3600,
+    "operation": "none",
+    "operationReadyAt": 0,
+    "pendingCalls": 0,
+    "rpc": true,
+    "safeIsExecutor": true,
+    "safeIsProposer": true,
+    "timelockIsAttestationAdmin": true,
+    "timelockIsIntegratorAdmin": true
+  },
+  "what": [],
+  "workPackage": "WP-124"
+}
