@@ -15,5 +15,11 @@ deployments/*.dry-run.json
 deployments/*.market-dry-run.json
 # WP #7772 rehearsal output (DeployControllerV2 without --broadcast); the live run appends .controllerV2 instead.
 deployments/*.controllerV2-dry-run.json
+# WP #7772 corrected-cutover payload (GrantControllerV2.s.sol). Unlike deployments/<chainId>.market-grant.json
+# this is NOT committed as of this PR: it depends on a live .controllerV2 (DeployControllerV2 has not
+# broadcast yet, CEO discretion — see deploy/runbooks/integrator-v2-cutover.md §3/§4) and its addresses
+# change with every deploy. Once V2 is deployed live, regenerate and paste/commit it for CEO review on the
+# WP #7772 thread, same discipline as the market-grant.json precedent.
+deployments/*.controllerV2-cutover.json
 # forge script broadcast logs are never committed; the address book is deployments/<chainId>.json
 broadcast/

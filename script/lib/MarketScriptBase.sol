@@ -36,6 +36,34 @@ abstract contract MarketScriptBase is Script {
         return string.concat("deployments/", vm.toString(block.chainid), ".market-grant.json");
     }
 
+    /// @dev Same path `DeployControllerV2.s.sol`'s own private `_controllerV2DryRunPath()` computes —
+    ///      duplicated (not shared) deliberately: that script pre-dates this helper and its copy is
+    ///      non-`virtual`, so a shared name here would collide as an accidental override.
+    function _controllerV2RehearsalPath() internal view returns (string memory) {
+        return string.concat("deployments/", vm.toString(block.chainid), ".controllerV2-dry-run.json");
+    }
+
+    function _cutoverPath() internal view returns (string memory) {
+        return string.concat("deployments/", vm.toString(block.chainid), ".controllerV2-cutover.json");
+    }
+
+    /// @dev Same shape as `_readMarketBook`, for `.controllerV2` instead of `.market` — shared by
+    ///      `VerifyControllerV2.s.sol` and `GrantControllerV2.s.sol` so both scripts pick the SAME V2
+    ///      address book (the live book once `DeployControllerV2` broadcasts, else the rehearsal file).
+    function _readControllerV2Book(string memory bookJson, string memory bookPath)
+        internal
+        view
+        returns (string memory json, string memory path)
+    {
+        if (vm.keyExistsJson(bookJson, ".controllerV2")) return (bookJson, bookPath);
+        path = _controllerV2RehearsalPath();
+        require(
+            vm.exists(path),
+            string.concat("controllerV2 address book missing: no .controllerV2 in ", bookPath, " and no ", path)
+        );
+        return (vm.readFile(path), path);
+    }
+
     /// @dev True only when this run may append to the input book (see the title NatSpec).
     function _isLiveWrite() internal view returns (bool) {
         if (vm.envOr("ARCNS_DRY_RUN", false)) return false;
