@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import {IIntegratorRegistry} from "./IIntegratorRegistry.sol";
 import {ITldRegistrarController} from "./ITldRegistrarController.sol";
 
 /// @title ITldRegistrarControllerV2 — WP #7772, the integrator-aware overload added on `ITldRegistrarController`
@@ -13,14 +14,16 @@ interface ITldRegistrarControllerV2 {
     /// @notice The allow-list + rate resolver consulted for every non-zero `integrator` argument. Same
     ///         contract instance as `HandleControllerV2.integratorRegistry` — one allow-list shared
     ///         across the whole registration surface, `DEFAULT_ADMIN_ROLE` (timelock)-gated.
-    function integratorRegistry() external view returns (address);
+    function integratorRegistry() external view returns (IIntegratorRegistry);
 
     /// @notice `register` plus a revenue-share split; `integrator` MUST already be allow-listed on
     ///         `integratorRegistry` (`address(0)` is refused — use plain `register`) or the whole call
     ///         reverts `NotIntegrator` before any state change.
-    function registerWithIntegrator(ITldRegistrarController.Registration calldata registration, uint256 maxPrice, address integrator)
-        external
-        payable;
+    function registerWithIntegrator(
+        ITldRegistrarController.Registration calldata registration,
+        uint256 maxPrice,
+        address integrator
+    ) external payable;
 
     /// @notice `registerWithProof` plus the same integrator split as `registerWithIntegrator`.
     function registerWithProofAndIntegrator(

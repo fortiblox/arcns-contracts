@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import {IIntegratorRegistry} from "./IIntegratorRegistry.sol";
+
 /// @title IHandleControllerV2 — WP #7772, the integrator-aware overload added on top of `IHandleController`
 /// @notice `HandleControllerV2` implements BOTH this interface and `IHandleController` unchanged: the
 ///         original 5-arg `register`/6-arg `registerWithProof` forms are byte-for-byte the same
@@ -14,7 +16,7 @@ interface IHandleControllerV2 {
     ///         `IIntegratorRegistry` NatSpec. This controller never grants, revokes or overrides an
     ///         integrator; it only reads `rateOf`/`computeSplit`, both of which revert `NotIntegrator`
     ///         for any address the timelock has not allow-listed.
-    function integratorRegistry() external view returns (address);
+    function integratorRegistry() external view returns (IIntegratorRegistry);
 
     /// @notice `register` plus a revenue-share split. `integrator == address(0)` is refused (use the
     ///         plain `register` instead) so a caller can never accidentally end up on the zero-split
