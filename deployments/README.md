@@ -22,3 +22,31 @@ Verification after any deploy: `forge script script/VerifyRoles.s.sol --rpc-url 
 `ROLES_VERIFIED` for the market stack once the phase-2 timelock operation has executed (before that: `ROLES_FAILED`
 with one `FAIL` line naming the missing `MARKET_ROLE` grant); `npm --prefix tools run verify-pricing` prints one `MATCH` per namespace;
 `deploy/BUILD.md` explains how to compare `bytecodeHashes` with a local build.
+
+## Market-stack module status (as of the 2026-09 on-chain/off-chain audit)
+
+Every address in `market{}` above is a live, verified deployment (selector drift checked against
+current source — see `contracts/out/*` vs `eth_getCode`), but "deployed" and "wired into a live
+user flow" are not the same fact for every module:
+
+- `ArcNSMarket` — fully wired, zero drift, click-verified end to end (listings, offers, auctions,
+  batch buy, settle, cancel) against the real UI with a real wallet.
+- `NameLocks` — wired: `ArcNSMarket._isLocked()` checks it as a secondary lock alongside the native
+  `HandleRegistry` lock.
+- `RecordDelegate`, `TextRecords` — deployed but **intentionally unused**. The app does per-name
+  delegation and text records natively on `ArcNSResolver` (`approve`/`isApprovedFor`, `text`/
+  `TextChanged`) instead — a deliberate EVM-native redesign (see `app/src/lib/arc/delegate.ts`,
+  `textRecords.ts`), not a bug. Leave retired; do not add to the indexer's watch list.
+- `Vouchers` — deployed, **not wired**. `HandleController`/`TldRegistrarController.register` have
+  no voucher-argument overload, so `create`/`claim`/`refund` are reachable on-chain but nothing in
+  the app calls them (`app/src/lib/arc/voucher.ts` stubs every entry point, `FEATURE_GIFT=false`).
+  Tracked: WP-130 (status: New) — redesign in progress, see WP-130 for the social-claim direction.
+- `IntegratorRegistry` — deployed, **not wired**. `setIntegrator`/`setIntegratorRate`/
+  `setDefaultRate` are `DEFAULT_ADMIN_ROLE` (timelock)-gated and callable today, but nothing calls
+  `rateOf`/`computeSplit` from `ArcNSMarket` or either controller's `register`, so no revenue share
+  is actually ever paid out. `/admin/integrators` states this honestly rather than showing fake
+  data. Tracked: WP-129 closed (module itself), wiring into register/market still open.
+- `AttestationRegistry` — deployed, **fully orphaned**. Zero callers anywhere on-chain or in the
+  app, and no app-side reference at all (not even a stub or feature flag). No matching open WP
+  found. Needs a product decision: build the identity-attestation feature that would consume it, or
+  mark the deployment deprecated so a future audit doesn't re-discover this as a mystery.
