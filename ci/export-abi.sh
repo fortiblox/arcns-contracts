@@ -16,6 +16,8 @@ for spec in \
   src/pricing/ArcNSPriceOracle.sol:ArcNSPriceOracle \
   src/resolver/ArcNSResolver.sol:ArcNSResolver \
   src/market/ArcNSMarket.sol:ArcNSMarket \
+  src/parity/IntegratorRegistry.sol:IntegratorRegistry \
+  src/parity/AttestationRegistry.sol:AttestationRegistry \
   lib/ens-contracts/contracts/registry/ENSRegistry.sol:ENSRegistry \
   lib/ens-contracts/contracts/root/Root.sol:Root \
   lib/ens-contracts/contracts/reverseRegistrar/ReverseRegistrar.sol:ReverseRegistrar \

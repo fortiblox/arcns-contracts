@@ -50,8 +50,11 @@ user flow" are not the same fact for every module:
   `TldRegistrarController` V2 redeploy (immutable-by-design controllers, no hook point today) —
   scoped in full (design, blast radius, rollout, rollback, acceptance criteria) in WP #7772,
   awaiting CEO go/no-go before any code is written.
-- `AttestationRegistry` — deployed, **fully orphaned**. Zero callers anywhere on-chain or in the
-  app, and no app-side reference at all (not even a stub or feature flag). Already orphaned on
-  x1id before the port (its SDK's `isHandleVerified()` had zero UI callers there either — see
-  WP #7768 comment, 2026-09-12). Decision gate: WP #7768 (build the identity-attestation feature,
-  or mark this deployment deprecated) — both paths scoped in that WP's comments.
+- `AttestationRegistry` — deployed, **build in progress (WP #7768, CEO decided BUILD 2026-09-12)**. The full
+  off-chain attest service (`api/src/attest/`: DNS TXT check, Privy webhook + access-token verification, EIP-712
+  signing), the app's read/write side (`app/src/lib/arc/attestations.ts`), the "Get verified" flow
+  (`AttestationPanel.tsx`, behind `NEXT_PUBLIC_FEATURE_ATTESTATIONS`, off by default), and the admin
+  grant/revoke tooling (`/admin/attestations`, behind `NEXT_PUBLIC_FEATURE_ATTESTATIONS_ADMIN`) shipped in this
+  PR. `isAttestor` for the generated attestor address is still `false` on chain — the `setAttestor` timelock
+  grant needs explicit CEO go (calldata is in this PR's report; see `docs/runbooks/attestation-service-setup.md`
+  for the remaining deploy steps: DB migration, Privy webhook config, live end-to-end test, then the grant).
