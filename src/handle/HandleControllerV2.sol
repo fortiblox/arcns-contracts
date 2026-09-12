@@ -39,7 +39,13 @@ import {LaunchAllowlist} from "../lib/LaunchAllowlist.sol";
 ///      Roles / storage layout / genesis / allowlist / pause: verbatim `HandleController` (see that
 ///      contract's NatSpec for SR-10/11/16/31/60/62 rationale). Immutable by design, same as V1: a v3
 ///      would again be a new deployment re-pointed via `REGISTRAR_ROLE`.
-contract HandleControllerV2 is IHandleController, IHandleControllerV2, AccessControl, Pausable, ReentrancyGuardTransient {
+contract HandleControllerV2 is
+    IHandleController,
+    IHandleControllerV2,
+    AccessControl,
+    Pausable,
+    ReentrancyGuardTransient
+{
     // ---------------------------------------------------------------------------------------------
     // Types / constants / immutables
     // ---------------------------------------------------------------------------------------------
