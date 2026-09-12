@@ -28,7 +28,13 @@ import tempfile
 
 SR60_TOKENS = re.compile(r"\b(delegatecall|selfdestruct)\b")
 SR62_TOKEN = re.compile(r"\bwhenNotPaused\b")
-SR62_ALLOWED = ("handle/HandleController.sol", "market/ArcNSMarket.sol", "tld/TldRegistrarController.sol")
+SR62_ALLOWED = (
+    "handle/HandleController.sol",
+    "handle/HandleControllerV2.sol",
+    "market/ArcNSMarket.sol",
+    "tld/TldRegistrarController.sol",
+    "tld/TldRegistrarControllerV2.sol",
+)
 
 
 def strip_comments_and_strings(text: str) -> str:
