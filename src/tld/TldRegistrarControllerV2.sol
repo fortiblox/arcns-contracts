@@ -492,6 +492,7 @@ contract TldRegistrarControllerV2 is
         }
         if (msg.value > price) {
             uint256 change = msg.value - price;
+            // slither-disable-next-line reentrancy-eth
             withdrawable[msg.sender] += change;
             emit Credited(msg.sender, change);
         }
