@@ -18,7 +18,7 @@ fs_permissions = [
   { access = "read", path = "../docs" },
   { access = "read-write", path = "../sdk/test" },
 ]
-gas_reports = ["HandleRegistry", "HandleController", "TldRegistrarController", "TldRegistrar", "TldDirectory", "ArcNSPriceOracle", "ArcNSResolver", "ArcNSMarket", "NameLocks", "RecordDelegate", "TextRecords", "AttestationRegistry", "IntegratorRegistry", "Vouchers"]
+gas_reports = ["HandleRegistry", "HandleController", "HandleControllerV2", "TldRegistrarController", "TldRegistrarControllerV2", "TldRegistrar", "TldDirectory", "ArcNSPriceOracle", "ArcNSResolver", "ArcNSMarket", "NameLocks", "RecordDelegate", "TextRecords", "AttestationRegistry", "IntegratorRegistry", "Vouchers"]
 
 [profile.default.fuzz]
 runs = 1000
