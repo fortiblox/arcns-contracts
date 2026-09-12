@@ -13,5 +13,7 @@ deployments/*.dry-run.json
 # Market phase-1 rehearsal output (DeployMarket without --broadcast); the live run appends .market to the book instead.
 # deployments/<chainId>.market-grant.json (phase 2) is deterministic and IS committed: the reviewed governance payload.
 deployments/*.market-dry-run.json
+# WP #7772 rehearsal output (DeployControllerV2 without --broadcast); the live run appends .controllerV2 instead.
+deployments/*.controllerV2-dry-run.json
 # forge script broadcast logs are never committed; the address book is deployments/<chainId>.json
 broadcast/
