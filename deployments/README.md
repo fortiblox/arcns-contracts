@@ -45,8 +45,13 @@ user flow" are not the same fact for every module:
   `setDefaultRate` are `DEFAULT_ADMIN_ROLE` (timelock)-gated and callable today, but nothing calls
   `rateOf`/`computeSplit` from `ArcNSMarket` or either controller's `register`, so no revenue share
   is actually ever paid out. `/admin/integrators` states this honestly rather than showing fake
-  data. Tracked: WP-129 closed (module itself), wiring into register/market still open.
+  data. Tracked: WP-129 (#7498) closed (module itself); admin-visibility wiring WP #7767 (in
+  progress); the actual payout wiring into `register()` requires a `HandleController`/
+  `TldRegistrarController` V2 redeploy (immutable-by-design controllers, no hook point today) —
+  scoped in full (design, blast radius, rollout, rollback, acceptance criteria) in WP #7772,
+  awaiting CEO go/no-go before any code is written.
 - `AttestationRegistry` — deployed, **fully orphaned**. Zero callers anywhere on-chain or in the
-  app, and no app-side reference at all (not even a stub or feature flag). No matching open WP
-  found. Needs a product decision: build the identity-attestation feature that would consume it, or
-  mark the deployment deprecated so a future audit doesn't re-discover this as a mystery.
+  app, and no app-side reference at all (not even a stub or feature flag). Already orphaned on
+  x1id before the port (its SDK's `isHandleVerified()` had zero UI callers there either — see
+  WP #7768 comment, 2026-09-12). Decision gate: WP #7768 (build the identity-attestation feature,
+  or mark this deployment deprecated) — both paths scoped in that WP's comments.
