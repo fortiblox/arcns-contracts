@@ -222,9 +222,7 @@ contract TldRegistrarControllerV3Test is TldStackFixture {
         v3.registerDirect{value: price}("tbl1", alice, price - 1);
 
         // InsufficientValue: correct maxPrice, underpaid msg.value
-        vm.expectRevert(
-            abi.encodeWithSelector(ITldRegistrarControllerV3.InsufficientValue.selector, price, price - 1)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ITldRegistrarControllerV3.InsufficientValue.selector, price, price - 1));
         vm.prank(alice);
         v3.registerDirect{value: price - 1}("tbl1", alice, price);
 
@@ -344,9 +342,7 @@ contract TldRegistrarControllerV3Test is TldStackFixture {
     // Additivity: V1 keeps the directory controller slot and keeps working after V3 is granted
     // =============================================================================================
 
-    function test_v1_or_v2_still_holds_directory_controllerOf_and_still_works_after_v3_addController_granted()
-        public
-    {
+    function test_v1_or_v2_still_holds_directory_controllerOf_and_still_works_after_v3_addController_granted() public {
         address controllerBefore = directory.controllerOf(arc.node);
         assertEq(controllerBefore, address(arc.controller));
 
@@ -503,7 +499,9 @@ contract TldRegistrarControllerV3Test is TldStackFixture {
         assertTrue(bad.attempted());
         assertFalse(bad.reentrantCallOk());
         assertEq(bytes4(bad.reentrantReturnData()), ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
-        assertEq(badPair.registrar.ownerOf(uint256(_labelhash("reentrytest"))), alice, "outer registration still succeeded");
+        assertEq(
+            badPair.registrar.ownerOf(uint256(_labelhash("reentrytest"))), alice, "outer registration still succeeded"
+        );
     }
 
     function test_reentrancy_blocked_on_withdraw_via_malicious_treasury() public {

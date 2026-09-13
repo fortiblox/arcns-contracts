@@ -53,12 +53,7 @@ import {TldRegistrar} from "./TldRegistrar.sol";
 ///
 ///      Two instances (`.arc`, `.circle`) are byte-identical bytecode with different `Init`, same as
 ///      V1/V2.
-contract TldRegistrarControllerV3 is
-    AccessControl,
-    Pausable,
-    ReentrancyGuardTransient,
-    ITldRegistrarControllerV3
-{
+contract TldRegistrarControllerV3 is AccessControl, Pausable, ReentrancyGuardTransient, ITldRegistrarControllerV3 {
     /// @notice Constructor arguments (struct so the deploy script and tests share one shape). Drops
     ///         `ens`/`resolver`/`reverseRegistrar`/`minCommitmentAge`/`maxCommitmentAge` relative to
     ///         V2's `Init` — none of them apply to a controller with no commit-reveal and no ENS path.

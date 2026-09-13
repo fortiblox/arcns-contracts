@@ -76,9 +76,7 @@ interface IHandleControllerV3 {
     /// @notice Single-transaction registration: no commit, no reveal, no front-running protection
     ///         (TESTNET-ONLY — see `HandleControllerV3` NatSpec). Reverts `AllowlistRequired` while the
     ///         allowlist window is open, with no proof-based escape hatch.
-    function registerDirect(string calldata name, address owner, uint8 handleType, uint256 maxPrice)
-        external
-        payable;
+    function registerDirect(string calldata name, address owner, uint8 handleType, uint256 maxPrice) external payable;
     function withdraw() external;
 
     function registerReservedBatch(string[] calldata names, uint8[] calldata handleTypes) external;
