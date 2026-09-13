@@ -37,6 +37,12 @@ contract ArcNSPriceOracle is AccessControl, IArcNSPriceOracle {
     mapping(bytes32 namespaceId => NamespaceInfo) private _info;
     mapping(bytes32 namespaceId => uint256[10]) private _tiers;
     mapping(bytes32 namespaceId => uint256[10]) private _tokenizeTiers;
+    /// @dev WP #192 (FORTI-Arc groundwork): fixed-rate ERC20 payment-token config, global (not per
+    ///      namespace) — one token, one rate, everywhere this oracle is used.
+    mapping(address paymentToken => TokenPriceConfig) private _paymentTokens;
+
+    /// @dev WAD scale for `TokenPriceConfig.rateWad`.
+    uint256 private constant WAD = 1e18;
 
     /// @param admin holder of `DEFAULT_ADMIN_ROLE` (the timelock).
     constructor(address admin) {
@@ -75,10 +81,24 @@ contract ArcNSPriceOracle is AccessControl, IArcNSPriceOracle {
 
     /// @inheritdoc IArcNSPriceOracle
     function quote(bytes32 namespaceId, string calldata label) external view returns (uint256 priceWei) {
-        NamespaceInfo storage n = _requireInitialised(namespaceId);
-        if (!HandleNormalize.isCanonical(label)) revert NotCanonicalLabel(label);
-        uint256 ceiling = _tiers[namespaceId][tierIndex(bytes(label).length)];
-        return computePrice(ceiling, _timeBps(n), rampBps(uint256(n.totalSold) / STEP_COUNT));
+        return _quoteNative(namespaceId, label);
+    }
+
+    /// @inheritdoc IArcNSPriceOracle
+    /// @dev Additive, read-only (WP #192): `_quoteNative` run through the payment token's fixed
+    ///      `rateWad`. Namespace/label validity is enforced exactly like `quote` (reverts, since the
+    ///      native price is undefined otherwise); token support is a plain flag check that returns
+    ///      `(0, false)` instead of reverting, so a caller (e.g. a frontend probing several tokens) can
+    ///      cheaply discover what is configured.
+    function quoteInToken(bytes32 namespaceId, string calldata label, address paymentToken)
+        external
+        view
+        returns (uint256 price, bool supported)
+    {
+        uint256 nativePrice = _quoteNative(namespaceId, label);
+        TokenPriceConfig storage cfg = _paymentTokens[paymentToken];
+        if (!cfg.supported) return (0, false);
+        return (nativePrice * cfg.rateWad / WAD, true);
     }
 
     /// @inheritdoc IArcNSPriceOracle
@@ -194,6 +214,26 @@ contract ArcNSPriceOracle is AccessControl, IArcNSPriceOracle {
         emit ControllerChanged(namespaceId, controller, tokenizer);
     }
 
+    /// @inheritdoc IArcNSPriceOracle
+    /// @dev WP #192: intentionally a flat, global, admin-set fixed rate — not a TWAP/Pyth oracle. Never
+    ///      touched by `quote`/`recordSale`/anything the native `TldRegistrarControllerV2` calls.
+    function setPaymentToken(address paymentToken, bool supported, uint256 rateWad)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (paymentToken == address(0)) revert PaymentTokenZeroAddress();
+        if (supported && rateWad == 0) revert PaymentTokenRateZero();
+        uint256 storedRate = supported ? rateWad : 0;
+        _paymentTokens[paymentToken] = TokenPriceConfig({supported: supported, rateWad: storedRate});
+        emit PaymentTokenSet(paymentToken, supported, storedRate);
+    }
+
+    /// @inheritdoc IArcNSPriceOracle
+    function paymentTokenConfig(address paymentToken) external view returns (bool supported, uint256 rateWad) {
+        TokenPriceConfig storage cfg = _paymentTokens[paymentToken];
+        return (cfg.supported, cfg.rateWad);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Internals
     // ---------------------------------------------------------------------------------------------
@@ -208,5 +248,13 @@ contract ArcNSPriceOracle is AccessControl, IArcNSPriceOracle {
     function _requireInitialised(bytes32 namespaceId) private view returns (NamespaceInfo storage n) {
         n = _info[namespaceId];
         if (!n.initialised) revert NamespaceNotInitialised(namespaceId);
+    }
+
+    /// @dev Shared by `quote` and `quoteInToken` — identical to `quote`'s pre-WP-#192 body, unchanged.
+    function _quoteNative(bytes32 namespaceId, string calldata label) private view returns (uint256 priceWei) {
+        NamespaceInfo storage n = _requireInitialised(namespaceId);
+        if (!HandleNormalize.isCanonical(label)) revert NotCanonicalLabel(label);
+        uint256 ceiling = _tiers[namespaceId][tierIndex(bytes(label).length)];
+        return computePrice(ceiling, _timeBps(n), rampBps(uint256(n.totalSold) / STEP_COUNT));
     }
 }
