@@ -31,9 +31,11 @@ SR62_TOKEN = re.compile(r"\bwhenNotPaused\b")
 SR62_ALLOWED = (
     "handle/HandleController.sol",
     "handle/HandleControllerV2.sol",
+    "handle/HandleControllerV3.sol",
     "market/ArcNSMarket.sol",
     "tld/TldRegistrarController.sol",
     "tld/TldRegistrarControllerV2.sol",
+    "tld/TldRegistrarControllerV3.sol",
 )
 
 
