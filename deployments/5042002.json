@@ -78,5 +78,13 @@
       "Vouchers": "0x5a189cf9fce93899851159d7894999d3d7afea60956604786b68b2510bcac767"
     },
     "deployBlock": 61573559
+  },
+  "nameGifts": {
+    "NameGifts": "0x28FE8eDA12e80035452C88b87ab06c93335CF275",
+    "bytecodeHashes": {
+      "NameGifts": "0x6b9c86047f18d9fe058ef1ee3dc36fc33a1d4a732453f587ac0c8f43776b283a"
+    },
+    "deployBlock": 62027615,
+    "nameLocks": "0x84990f68e2b88e25E17b658DC247aC4950b23986"
   }
 }
