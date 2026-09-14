@@ -23,6 +23,7 @@ contract MockOracle is IArcNSPriceOracle {
     mapping(bytes32 => Ns) internal _ns;
     uint256 public recordSaleCalls;
     uint256 public recordTokenizeCalls;
+    mapping(address => TokenPriceConfig) internal _paymentTokens;
 
     // ---- test helpers -----------------------------------------------------------------------------
 
@@ -95,6 +96,19 @@ contract MockOracle is IArcNSPriceOracle {
         Ns storage n = _ns[namespaceId];
         if (!n.initialised) revert NamespaceNotInitialised(namespaceId);
         return n.priceWei;
+    }
+
+    function quoteInToken(bytes32 namespaceId, string calldata label, address paymentToken)
+        external
+        view
+        returns (uint256 price, bool supported)
+    {
+        if (!HandleNormalize.isCanonical(label)) revert NotCanonicalLabel(label);
+        Ns storage n = _ns[namespaceId];
+        if (!n.initialised) revert NamespaceNotInitialised(namespaceId);
+        TokenPriceConfig storage cfg = _paymentTokens[paymentToken];
+        if (!cfg.supported) return (0, false);
+        return (n.priceWei * cfg.rateWad / 1e18, true);
     }
 
     function quoteTokenize(bytes32 namespaceId, string calldata label) external view returns (uint256) {
@@ -187,5 +201,18 @@ contract MockOracle is IArcNSPriceOracle {
         _ns[namespaceId].controller = controller;
         _ns[namespaceId].tokenizer = tokenizer;
         emit ControllerChanged(namespaceId, controller, tokenizer);
+    }
+
+    function setPaymentToken(address paymentToken, bool supported, uint256 rateWad) external {
+        if (paymentToken == address(0)) revert PaymentTokenZeroAddress();
+        if (supported && rateWad == 0) revert PaymentTokenRateZero();
+        uint256 storedRate = supported ? rateWad : 0;
+        _paymentTokens[paymentToken] = TokenPriceConfig({supported: supported, rateWad: storedRate});
+        emit PaymentTokenSet(paymentToken, supported, storedRate);
+    }
+
+    function paymentTokenConfig(address paymentToken) external view returns (bool supported, uint256 rateWad) {
+        TokenPriceConfig storage cfg = _paymentTokens[paymentToken];
+        return (cfg.supported, cfg.rateWad);
     }
 }
