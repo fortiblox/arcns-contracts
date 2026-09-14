@@ -9,7 +9,9 @@ forge build >/dev/null
 for spec in \
   src/handle/HandleRegistry.sol:HandleRegistry \
   src/handle/HandleController.sol:HandleController \
+  src/handle/HandleControllerV3.sol:HandleControllerV3 \
   src/tld/TldRegistrarController.sol:TldRegistrarController \
+  src/tld/TldRegistrarControllerV3.sol:TldRegistrarControllerV3 \
   src/tld/TldRegistrar.sol:TldRegistrar \
   src/tld/TldDirectory.sol:TldDirectory \
   src/tld/TldMetadata.sol:TldMetadata \
