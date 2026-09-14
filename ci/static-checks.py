@@ -36,6 +36,10 @@ SR62_ALLOWED = (
     "tld/TldRegistrarController.sol",
     "tld/TldRegistrarControllerV2.sol",
     "tld/TldRegistrarControllerV3.sol",
+    # issue #192 (FORTI-Arc groundwork): same "pause blocks only new registration activity"
+    # principle as the native controllers above — see TldTokenPaymentController's own pause()/
+    # unpause() NatSpec.
+    "tld/TldTokenPaymentController.sol",
 )
 
 

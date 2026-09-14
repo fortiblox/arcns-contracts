@@ -20,18 +20,33 @@ interface IArcNSPriceOracle {
         bool initialised;
     }
 
+    /// @notice Fixed-rate config for one ERC20 `paymentToken` (WP #192, FORTI-Arc groundwork).
+    /// @dev `rateWad`: payment-token base units per native wei, scaled by 1e18 — `tokenAmount =
+    ///      nativePriceWei * rateWad / 1e18`. A simple governance-settable fixed rate, deliberately
+    ///      not a TWAP/Pyth oracle (out of scope here; can be swapped in later without touching
+    ///      `quoteInToken`'s signature).
+    struct TokenPriceConfig {
+        bool supported;
+        uint256 rateWad;
+    }
+
     event NamespaceInitialised(bytes32 indexed namespaceId, address controller, address tokenizer, uint64 launchTs);
     event TiersUpdated(bytes32 indexed namespaceId, uint256[10] ceilingWei);
     event TokenizeTiersUpdated(bytes32 indexed namespaceId, uint256[10] ceilingWei);
     event SaleRecorded(bytes32 indexed namespaceId, uint64 totalSold);
     event TokenizeRecorded(bytes32 indexed namespaceId, uint64 tokenized);
     event ControllerChanged(bytes32 indexed namespaceId, address controller, address tokenizer);
+    /// @notice `paymentToken`'s conversion rate was (re)configured, or cleared (`supported == false`).
+    event PaymentTokenSet(address indexed paymentToken, bool supported, uint256 rateWad);
 
     error NamespaceNotInitialised(bytes32 namespaceId);
     error NamespaceAlreadyInitialised(bytes32 namespaceId);
     error NotNamespaceController(bytes32 namespaceId, address caller);
     error NotNamespaceTokenizer(bytes32 namespaceId, address caller);
     error NotCanonicalLabel(string label);
+    error PaymentTokenZeroAddress();
+    /// @notice `setPaymentToken(token, true, 0)` — a supported token needs a non-zero rate.
+    error PaymentTokenRateZero();
 
     // ---- curve constants (immutable by design so nobody can shorten the early bird retroactively)
     function START_BPS() external pure returns (uint16);
@@ -46,6 +61,16 @@ interface IArcNSPriceOracle {
 
     // ---- views
     function quote(bytes32 namespaceId, string calldata label) external view returns (uint256 priceWei);
+    /// @notice `quote(namespaceId, label)` converted into `paymentToken` through its configured fixed
+    ///         `rateWad` (WP #192, FORTI-Arc groundwork). `supported == false` (and `price == 0`) for
+    ///         any token that has not been explicitly registered via `setPaymentToken` — this never
+    ///         reverts for an unsupported token, so callers can probe support cheaply. Still reverts
+    ///         `NamespaceNotInitialised` / `NotCanonicalLabel` exactly like `quote`, since the native
+    ///         price underneath is undefined otherwise.
+    function quoteInToken(bytes32 namespaceId, string calldata label, address paymentToken)
+        external
+        view
+        returns (uint256 price, bool supported);
     function quoteTokenize(bytes32 namespaceId, string calldata label) external view returns (uint256 priceWei);
     function timeBps(bytes32 namespaceId) external view returns (uint256);
     function volumeBps(bytes32 namespaceId) external view returns (uint256);
@@ -70,4 +95,9 @@ interface IArcNSPriceOracle {
     function setTiers(bytes32 namespaceId, uint256[10] calldata ceilingWei) external;
     function setTokenizeTiers(bytes32 namespaceId, uint256[10] calldata ceilingWei) external;
     function setController(bytes32 namespaceId, address controller, address tokenizer) external;
+    /// @notice Register, update, or clear (`supported = false`) the fixed conversion rate used by
+    ///         `quoteInToken` for `paymentToken`. `rateWad` is ignored (stored as 0) when clearing.
+    function setPaymentToken(address paymentToken, bool supported, uint256 rateWad) external;
+    /// @notice Raw config for `paymentToken` — `(false, 0)` for anything never configured.
+    function paymentTokenConfig(address paymentToken) external view returns (bool supported, uint256 rateWad);
 }
