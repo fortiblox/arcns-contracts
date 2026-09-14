@@ -86,5 +86,16 @@
     },
     "deployBlock": 62027615,
     "nameLocks": "0x84990f68e2b88e25E17b658DC247aC4950b23986"
+  },
+  "controllerV3": {
+    "HandleControllerV3": "0xf0db9AbD5BeD72938F9657F0e337Bb1b244b19AA",
+    "TldRegistrarControllerV3Arc": "0xF84B73b4FdAB3316bACf9bc3E84080A541e4FC09",
+    "TldRegistrarControllerV3Circle": "0xeDf47Fcd07bb19AAac3ce40304813B0413275eA0",
+    "bytecodeHashes": {
+      "HandleControllerV3": "0xc170eb6a8a7bad711ac4eb3fb265055ea515a02a4ae322cf8fcaf966d1455062",
+      "TldRegistrarControllerV3Arc": "0x22621a9677b1a4e137cf29f2d2965cce71bd5635a32702368da1a6f6092fe9fb",
+      "TldRegistrarControllerV3Circle": "0x747430e78fc6ce0f1515f647694170c3f12a2a952028aa0e8218a050bf85ef58"
+    },
+    "deployBlock": 62030775
   }
 }
