@@ -90,11 +90,16 @@ contract NameGifts is INameGifts, AccessControl, ReentrancyGuardTransient {
     }
 
     /// @dev This contract only ever custodies an NFT, never value — matches both `Vouchers.sol` and
-    ///      `ArcNSMarket`.
+    ///      `ArcNSMarket`. Unlike those two, this contract has no `withdraw()` (there is nothing to
+    ///      withdraw: both functions below unconditionally revert, so ether can never actually be
+    ///      received here) — see SECURITY-NOTES.md's `locked-ether` entry for why slither still flags
+    ///      it and why that is a false positive specific to this contract.
+    // slither-disable-next-line locked-ether
     receive() external payable {
         revert ValueNotAccepted();
     }
 
+    // slither-disable-next-line locked-ether
     fallback() external payable {
         revert ValueNotAccepted();
     }
